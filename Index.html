@@ -1,0 +1,2171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Performance Dashboard 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #EEF2F8;
+  --bg1:     #E4EAF4;
+  --bg2:     #F0F4FB;
+  --card:    #FFFFFF;
+  --card2:   #F6F9FF;
+  --border:  #D8E2F0;
+  --border2: #C4D2E8;
+  --gold:    #D97706;
+  --gold2:   #B45309;
+  --blue:    #1D5FD4;
+  --blue2:   #1449AA;
+  --teal:    #059669;
+  --red:     #DC2626;
+  --purple:  #7C3AED;
+  --cyan:    #0891B2;
+  --text:    #0F172A;
+  --text2:   #475569;
+  --text3:   #94A3B8;
+  --seg-d:   #D97706;
+  --seg-o:   #1D5FD4;
+  --seg-i:   #059669;
+  --seg-ot:  #7C3AED;
+  --seg-v:   #DC2626;
+  --shadow:  0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.07);
+  --shadow-lg:0 4px 6px rgba(15,23,42,0.05), 0 10px 40px rgba(15,23,42,0.1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ─── SUBTLE TEXTURE ─── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%, rgba(29,95,212,0.04) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 95% 100%, rgba(217,119,6,0.05) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+.wrap{position:relative;z-index:1;max-width:1640px;margin:0 auto;padding:0 28px 60px}
+
+/* ─── TOPBAR ─── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:24px 0 20px;
+  border-bottom:2px solid var(--border);
+  gap:16px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:16px}
+.brand-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+  box-shadow:0 4px 14px rgba(29,95,212,0.3);
+}
+.brand-text h1{
+  font-family:'Outfit',sans-serif;
+  font-size:26px;font-weight:800;letter-spacing:-0.5px;color:var(--text);
+}
+.brand-text p{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:2px;
+}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{
+  display:flex;align-items:center;gap:7px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  padding:7px 16px;border-radius:24px;font-weight:500;
+}
+.badge-green{background:rgba(5,150,105,0.08);border:1.5px solid rgba(5,150,105,0.2);color:var(--teal)}
+.badge-blue{background:rgba(29,95,212,0.08);border:1.5px solid rgba(29,95,212,0.2);color:var(--blue)}
+.dot{width:6px;height:6px;border-radius:50%;animation:blink 2s infinite;flex-shrink:0}
+.dot-green{background:var(--teal)}
+.dot-gold{background:var(--gold)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+
+.tbl-y25{opacity:0.75;font-size:0.91em;}
+.var-na{color:var(--text3);font-size:11px;}
+
+/* ─── FILTER BAR ─── */
+.filterbar{
+  display:flex;align-items:center;gap:8px;
+  padding:18px 0 20px;flex-wrap:wrap;
+  position:relative;z-index:100;overflow:visible;
+}
+.filter-group{display:flex;align-items:center;gap:6px}
+.filter-label{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text3);
+  margin-right:4px;white-space:nowrap;font-weight:500;
+}
+.divider-v{width:1px;height:28px;background:var(--border2);margin:0 8px;flex-shrink:0}
+
+.fbtn{
+  background:var(--card);
+  border:1.5px solid var(--border);
+  color:var(--text2);
+  padding:8px 20px;border-radius:8px;
+  font-family:'Outfit',sans-serif;
+  font-size:14px;font-weight:600;letter-spacing:0.3px;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;
+  box-shadow:0 1px 3px rgba(15,23,42,0.06);
+}
+.fbtn:hover{border-color:var(--blue);color:var(--blue);background:#F0F5FF}
+.fbtn.act-mes{
+  background:rgba(217,119,6,0.08);
+  border-color:var(--gold);color:var(--gold);
+  box-shadow:0 2px 8px rgba(217,119,6,0.15);
+}
+.fbtn.act-all{
+  background:rgba(29,95,212,0.08);
+  border-color:var(--blue);color:var(--blue);
+  box-shadow:0 2px 8px rgba(29,95,212,0.15);
+}
+.fbtn.act-seg{
+  background:rgba(5,150,105,0.08);
+  border-color:var(--teal);color:var(--teal);
+  box-shadow:0 2px 8px rgba(5,150,105,0.15);
+}
+
+/* ─── KPI GRID ─── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+
+.kpi{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:16px;padding:22px 24px;
+  position:relative;overflow:hidden;transition:all 0.2s;
+  box-shadow:var(--shadow);
+}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--accent-c),transparent);
+  border-radius:16px 16px 0 0;
+}
+.kpi::after{
+  content:'';position:absolute;bottom:-24px;right:-24px;
+  width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(var(--accent-c) 0%,transparent 70%);
+  opacity:0.06;
+}
+.kpi.c1{--accent-c:var(--gold)}
+.kpi.c2{--accent-c:var(--blue)}
+.kpi.c3{--accent-c:var(--teal)}
+.kpi.c4{--accent-c:var(--purple)}
+.kpi-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;font-weight:500}
+.kpi-val{font-family:'Outfit',sans-serif;font-size:42px;font-weight:800;line-height:1;color:var(--accent-c);margin-bottom:5px}
+.kpi-sub{font-size:12px;color:var(--text3);font-weight:400}
+.kpi-ico{position:absolute;top:20px;right:20px;font-size:28px;opacity:0.15}
+
+/* ─── SECTION ─── */
+.sec-hd{
+  display:flex;align-items:center;gap:12px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+  color:var(--text3);margin-bottom:14px;margin-top:6px;
+}
+.sec-hd::before{content:'';display:block;width:3px;height:16px;background:var(--blue);border-radius:2px}
+
+/* ─── CHART CARD ─── */
+.cc{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:16px;padding:22px 24px;
+  position:relative;overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.cc-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+.cc-title{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.3px;color:var(--text)}
+.cc-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);margin-top:4px;letter-spacing:0.5px}
+.cc-tag{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;font-weight:600;
+  background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.2);
+  color:var(--gold);padding:5px 12px;border-radius:6px;white-space:nowrap;
+}
+.cc-tag.blue{background:rgba(29,95,212,0.07);border-color:rgba(29,95,212,0.2);color:var(--blue)}
+.cc-tag.teal{background:rgba(5,150,105,0.07);border-color:rgba(5,150,105,0.2);color:var(--teal)}
+
+.cc::after{
+  content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(29,95,212,0.06),transparent);
+}
+
+/* ─── GRID LAYOUTS ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px}
+.span2{grid-column:1/-1}
+
+/* ─── CHART WRAPPERS ─── */
+.trend-wrap{height:220px;position:relative}
+.cw-sm{height:180px;position:relative}
+.cw-md{height:220px;position:relative}
+.cw-lg{height:260px;position:relative}
+.cw-pie{height:200px;position:relative}
+.cw-tipo{height:260px;position:relative}
+
+/* ─── LOW PERF TABLE ─── */
+.lp-header{
+  display:flex;align-items:center;gap:12px;
+  padding:18px 24px;border-bottom:1.5px solid var(--border);
+  flex-wrap:wrap;
+}
+.lp-title{font-family:'Outfit',sans-serif;font-size:18px;font-weight:700;color:var(--text)}
+.lp-controls{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
+.sel{
+  background:var(--card2);border:1.5px solid var(--border);
+  color:var(--text);padding:8px 14px;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%2394A3B8' d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  padding-right:32px;font-weight:500;
+}
+.sel:focus{outline:2px solid var(--blue);outline-offset:1px}
+
+.lp-stats{display:flex;gap:16px;align-items:center}
+.stat-pill{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
+  padding:5px 14px;border-radius:20px;
+}
+.stat-pill.red{background:rgba(220,38,38,0.07);border:1.5px solid rgba(220,38,38,0.2);color:var(--red)}
+.stat-pill.green{background:rgba(5,150,105,0.07);border:1.5px solid rgba(5,150,105,0.2);color:var(--teal)}
+
+.tbl-wrap{overflow-x:auto;max-height:480px;overflow-y:auto}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;z-index:10}
+th{
+  background:#F8FAFF;padding:11px 18px;text-align:left;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text3);
+  border-bottom:2px solid var(--border);white-space:nowrap;font-weight:600;
+}
+tbody tr{border-bottom:1px solid var(--bg1);transition:background 0.1s}
+tbody tr:hover{background:var(--card2)}
+td{padding:11px 18px;font-size:13px;white-space:nowrap;color:var(--text)}
+
+/* seg pills */
+.spill{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.3px}
+.sp-D{background:rgba(217,119,6,0.1);color:var(--seg-d)}
+.sp-O{background:rgba(29,95,212,0.1);color:var(--seg-o)}
+.sp-I{background:rgba(5,150,105,0.1);color:var(--seg-i)}
+.sp-T{background:rgba(124,58,237,0.1);color:var(--seg-ot)}
+.sp-V{background:rgba(220,38,38,0.1);color:var(--seg-v)}
+
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px}
+.c-gold{color:var(--gold)}
+.c-blue{color:var(--blue)}
+.c-teal{color:var(--teal)}
+.c-red{color:var(--red)}
+.c-dim{color:var(--text3)}
+
+.diff-neg{color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500}
+.diff-pos{color:var(--teal);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500}
+
+.prog{display:flex;align-items:center;gap:8px}
+.prog-track{flex:1;height:4px;background:var(--bg1);border-radius:3px;overflow:hidden;max-width:80px}
+.prog-fill{height:100%;border-radius:3px}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:1100px){
+  .g3{grid-template-columns:1fr 1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:750px){
+  .g2,.g21,.g12,.g3{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr}
+  .wrap{padding:0 16px 40px}
+}
+
+/* ─── FADE IN ─── */
+.fi{opacity:0;animation:fi 0.4s ease forwards}
+.fi1{animation-delay:0.05s}.fi2{animation-delay:0.1s}
+.fi3{animation-delay:0.15s}.fi4{animation-delay:0.2s}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ─── LEGEND ─── */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:2px}
+
+/* ─── COMPARE SECTION ─── */
+#compSection{transition:opacity 0.3s}
+
+/* ─── UNIT SEARCH ─── */
+.unit-search-wrap{position:relative;z-index:9999}
+.unit-search-box{
+  display:flex;align-items:center;gap:7px;
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  padding:8px 14px;
+  transition:border-color 0.2s,box-shadow 0.2s;
+  width:190px;box-shadow:var(--shadow);
+}
+.unit-search-box:focus-within{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(29,95,212,0.1);
+}
+.us-icon{font-size:14px;opacity:0.4;flex-shrink:0}
+.us-input{
+  background:transparent;border:none;outline:none;
+  color:var(--text);font-family:'IBM Plex Mono',monospace;
+  font-size:13px;letter-spacing:1px;width:100%;
+}
+.us-input::placeholder{color:var(--text3);font-family:'DM Sans',sans-serif;letter-spacing:0;font-size:13px}
+.us-clear{
+  background:none;border:none;cursor:pointer;
+  color:var(--text3);font-size:12px;padding:0 2px;
+  transition:color 0.15s;display:none;flex-shrink:0;
+}
+.us-clear:hover{color:var(--red)}
+.us-clear.visible{display:block}
+
+.us-dropdown{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  box-shadow:var(--shadow-lg);
+  z-index:9999;overflow:hidden;display:none;
+  max-height:380px;overflow-y:auto;min-width:340px;
+}
+.us-dropdown.open{display:block}
+.us-result-hd{
+  padding:10px 16px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text3);
+  border-bottom:1px solid var(--border);background:var(--bg2);font-weight:600;
+}
+.us-result-item{
+  display:flex;align-items:center;padding:12px 16px;gap:12px;
+  border-bottom:1px solid var(--bg1);cursor:pointer;transition:background 0.1s;
+}
+.us-result-item:last-child{border-bottom:none}
+.us-result-item:hover{background:var(--card2)}
+.us-unit-num{
+  font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;
+  color:var(--blue);min-width:55px;
+}
+.us-unit-meta{flex:1}
+.us-unit-meta .seg-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.us-unit-meta .mes-tag{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  color:var(--text3);background:var(--bg2);border:1px solid var(--border);
+  padding:2px 8px;border-radius:10px;
+}
+.us-stat{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2)}
+.us-rend-chip{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;
+  padding:4px 10px;border-radius:6px;white-space:nowrap;
+}
+.us-rend-chip.good{background:rgba(5,150,105,0.08);color:var(--teal);border:1.5px solid rgba(5,150,105,0.2)}
+.us-rend-chip.warn{background:rgba(217,119,6,0.08);color:var(--gold);border:1.5px solid rgba(217,119,6,0.2)}
+.us-rend-chip.bad{background:rgba(220,38,38,0.08);color:var(--red);border:1.5px solid rgba(220,38,38,0.2)}
+.us-no-results{padding:20px 16px;text-align:center;color:var(--text3);font-size:13px}
+
+.unit-panel{
+  background:var(--card);border:2px solid var(--blue);
+  border-radius:16px;margin-bottom:16px;overflow:hidden;
+  display:none;box-shadow:0 4px 20px rgba(29,95,212,0.12);
+}
+.unit-panel.open{display:block}
+.up-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 24px;
+  background:linear-gradient(90deg,rgba(29,95,212,0.05),transparent);
+  border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;
+}
+.up-title{display:flex;align-items:center;gap:14px}
+.up-num{font-family:'Outfit',sans-serif;font-size:38px;font-weight:800;color:var(--blue);line-height:1}
+.up-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3)}
+.up-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.up-close{
+  background:rgba(220,38,38,0.07);border:1.5px solid rgba(220,38,38,0.2);
+  color:var(--red);border-radius:8px;padding:7px 16px;
+  cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:600;
+  transition:all 0.15s;
+}
+.up-close:hover{background:rgba(220,38,38,0.14)}
+.up-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--border)}
+.up-stat{background:var(--card);padding:16px 20px}
+.up-stat-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-weight:600}
+.up-stat-val{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;line-height:1;color:var(--text)}
+.up-stat-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ─── TABLERO ROL ─── */
+.tablero{width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif}
+.tablero thead th{
+  background:#F4F7FF;padding:12px 18px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text3);
+  text-align:left;border-bottom:2px solid var(--border);white-space:nowrap;font-weight:600;
+}
+.tablero thead th:not(:first-child){text-align:right}
+.tablero td{padding:12px 18px;font-size:13px;border-bottom:1px solid var(--bg1)}
+.tablero td:not(:first-child){text-align:right}
+
+/* FEDERAL group row */
+.tr-group-hd td{
+  background:#EEF4FF;color:var(--blue);
+  font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+  border-top:2px solid rgba(29,95,212,0.15);
+  border-bottom:1px solid rgba(29,95,212,0.1);
+}
+/* Standalone segment rows (IMSS, VES MEX, OTROS) */
+.tr-seg-standalone td{
+  background:var(--card);transition:background 0.1s;
+}
+.tr-seg-standalone:hover td{background:var(--card2)}
+.tr-seg-standalone td:first-child{padding-left:18px;font-weight:500}
+
+.tr-child td{background:var(--card);transition:background 0.1s}
+.tr-child:hover td{background:var(--card2)}
+.tr-child td:first-child{padding-left:34px;font-weight:500}
+
+/* Separator between FEDERAL block and standalone rows */
+.tr-sep td{
+  background:#F8FAFF;padding:6px 18px;
+  border-top:2px solid var(--border);border-bottom:2px solid var(--border);
+}
+
+.tr-total td{
+  background:#FFFBEB;
+  border-top:2px solid rgba(217,119,6,0.3);
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;
+  color:var(--gold);
+}
+.tbl-mono{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500}
+.tbl-bar-wrap{width:50px;height:4px;background:var(--bg1);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.tbl-bar-fill{height:100%;border-radius:3px}
+.tbl-rend-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600}
+.tbl-pct{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- TOPBAR -->
+<div class="topbar fi">
+  <div class="brand">
+    <div class="brand-icon">🚌</div>
+    <div class="brand-text">
+      <h1>Rendimiento Federal - 2026</h1>
+      <p>Fleet Operations · Análisis 2026</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="badge badge-green"><span class="dot dot-green"></span>DATOS ACTIVOS</div>
+    <div class="badge badge-blue"><span class="dot dot-gold"></span>ENE — FEB 2026</div>
+    <button id="btnExportPDF" onclick="exportPDF()" style="
+      display:flex;align-items:center;gap:7px;
+      background:linear-gradient(135deg,#1D5FD4,#1348A8);
+      color:#fff;border:none;border-radius:8px;
+      padding:8px 16px;cursor:pointer;
+      font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;
+      letter-spacing:.06em;
+      box-shadow:0 2px 8px rgba(29,95,212,0.35);
+      transition:all .2s;white-space:nowrap
+    "
+    onmouseover="this.style.background='linear-gradient(135deg,#1348A8,#0D3680)';this.style.boxShadow='0 4px 14px rgba(29,95,212,0.5)'"
+    onmouseout="this.style.background='linear-gradient(135deg,#1D5FD4,#1348A8)';this.style.boxShadow='0 2px 8px rgba(29,95,212,0.35)'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      EXPORTAR PDF
+    </button>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filterbar fi fi1">
+  <div class="filter-group">
+    <span class="filter-label">Mes</span>
+    <button class="fbtn act-all" onclick="setMes('Todos',this)">ACUMULADO</button>
+    <button class="fbtn" onclick="setMes('Ene',this)">ENERO</button>
+    <button class="fbtn" onclick="setMes('Feb',this)">FEBRERO</button>
+  </div>
+  <div class="divider-v"></div>
+  <div class="filter-group">
+    <span class="filter-label">Segmento</span>
+    <button class="fbtn act-seg" onclick="setSeg('Todos',this)">ACUMULADO</button>
+    <button class="fbtn" onclick="setSeg('DIAMANTE',this)">DIAMANTE</button>
+    <button class="fbtn" onclick="setSeg('ORDINARIO',this)">ORDINARIO</button>
+    <button class="fbtn" onclick="setSeg('IMSS',this)">IMSS</button>
+    <button class="fbtn" onclick="setSeg('OTROS',this)">OTROS</button>
+    <button class="fbtn" onclick="setSeg('VES MEX',this)">VES MEX</button>
+  </div>
+  <div class="divider-v"></div>
+  <!-- BUSCADOR DE UNIDAD -->
+  <div class="unit-search-wrap">
+    <div class="unit-search-box" id="unitSearchBox">
+      <span class="us-icon">🔍</span>
+      <input type="text" id="unitSearchInput" class="us-input"
+        placeholder="# Unidad…" oninput="onUnitSearch(this.value)"
+        autocomplete="off" maxlength="6"/>
+      <button class="us-clear" id="usClear" onclick="clearUnitSearch()" title="Limpiar">✕</button>
+    </div>
+    <div class="us-dropdown" id="usDropdown"></div>
+  </div>
+</div>
+
+<!-- UNIT DETAIL PANEL -->
+<div class="unit-panel" id="unitPanel">
+  <div class="up-header">
+    <div class="up-title">
+      <div>
+        <div class="up-label">Unidad seleccionada</div>
+        <div class="up-num" id="upNum">—</div>
+      </div>
+      <div id="upMeta" class="up-meta"></div>
+    </div>
+    <button class="up-close" onclick="clearUnitSearch()">✕ Cerrar</button>
+  </div>
+  <div class="up-stats" id="upStats"></div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<!-- SECCIÓN: COMPARATIVO 2025 vs 2026 -->
+<div style="margin-top:28px;margin-bottom:8px">
+  <div class="sec-hd" style="margin-bottom:16px">
+    <span style="display:flex;align-items:center;gap:10px;font-size:15px">
+      Comparativo 2026 vs 2025
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);color:var(--gold);padding:3px 10px;border-radius:4px;letter-spacing:1.5px">ENERO · FEBRERO</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;background:rgba(61,142,240,0.1);border:1px solid rgba(61,142,240,0.25);color:var(--blue);padding:3px 10px;border-radius:4px;letter-spacing:1.5px">2025 AÑO COMPLETO</span>
+    </span>
+  </div>
+
+  <!-- KPI comparison cards -->
+  <div id="comp-kpi" class="kpi-grid" style="margin-bottom:24px"></div>
+
+  <!-- Row 1: line chart total fleet -->
+  <div class="cc" style="margin-bottom:20px">
+    <div class="cc-head">
+      <div>
+        <div class="cc-title">Tendencia de Rendimiento — Flota Total</div>
+        <div class="cc-sub">2026 columnas (dorado) vs 2025 línea (azul) · km/L</div>
+      </div>
+      <div class="cc-tag">2025 vs 2026</div>
+    </div>
+    <div class="cw-md"><canvas id="compChart1"></canvas></div>
+  </div>
+
+  <!-- Row 2: segment and platform comparison -->
+  <div class="g2" style="margin-bottom:20px">
+    <div class="cc">
+      <div class="cc-head">
+        <div>
+          <div class="cc-title">Rendimiento por Segmento</div>
+          <div class="cc-sub">Ene y Feb: 2025 (azul) vs 2026 (dorado)</div>
+        </div>
+        <div class="cc-tag">SEGMENTOS</div>
+      </div>
+      <div class="cw-sm"><canvas id="compChart2"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="cc-head">
+        <div>
+          <div class="cc-title">Rendimiento por Plataforma</div>
+          <div class="cc-sub">Ene y Feb: 2025 (verde) vs 2026 (morado)</div>
+        </div>
+        <div class="cc-tag">PLATAFORMAS</div>
+      </div>
+      <div class="cw-sm"><canvas id="compChart3"></canvas></div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- SECCIÓN: SEGMENTO -->
+<div class="sec-hd fi fi2">Rendimiento por Segmento</div>
+<div class="fi fi2">
+  <!-- TABLERO full width -->
+  <div class="cc" style="padding:0;overflow:hidden;margin-bottom:16px">
+    <div class="cc-head" style="padding:20px 24px 16px">
+      <div>
+        <div class="cc-title">Tablero por Tipo de ROL</div>
+        <div class="cc-sub" id="tagSegBoard">Km · Litros · Rendimiento — <span style="color:var(--gold)">2026</span> vs <span style="color:var(--blue)">2025</span> · Variación</div>
+      </div>
+      <div class="cc-tag" id="tagSegBadge">TODOS</div>
+    </div>
+    <div id="segTablero" style="overflow-x:auto"></div>
+  </div>
+</div>
+
+<!-- SECCIÓN: PLATAFORMA -->
+<div class="sec-hd fi fi3">Rendimiento por Plataforma</div>
+<div class="g2 fi fi3">
+  <div class="cc">
+    <div class="cc-head">
+      <div>
+        <div class="cc-title">Km/L por Plataforma</div>
+        <div class="cc-sub">Eficiencia de combustible horizontal</div>
+      </div>
+      <div class="cc-tag blue" id="tagPlatBar">TODOS</div>
+    </div>
+    <div class="cw-md"><canvas id="cPlatBar"></canvas></div>
+  </div>
+  <div class="cc">
+    <div class="cc-head">
+      <div>
+        <div class="cc-title">Kilómetros Liquidados</div>
+        <div class="cc-sub">Volumen operativo por plataforma</div>
+      </div>
+    </div>
+    <div class="cw-md"><canvas id="cPlatKms"></canvas></div>
+  </div>
+</div>
+
+<!-- SECCIÓN: TIPO DE PLATAFORMA -->
+<div class="sec-hd fi fi3">Rendimiento por Tipo de Plataforma</div>
+<div class="g21 fi fi3">
+  <div class="cc">
+    <div class="cc-head">
+      <div>
+        <div class="cc-title">Km/L por Tipo de Unidad</div>
+        <div class="cc-sub">Comparativa por modelo de autobús</div>
+      </div>
+      <div class="cc-tag blue" id="tagTipoBar">TODOS</div>
+    </div>
+    <div class="cw-tipo"><canvas id="cTipoBar"></canvas></div>
+  </div>
+  <div class="cc">
+    <div class="cc-head">
+      <div>
+        <div class="cc-title">Km Liquidados por Tipo</div>
+        <div class="cc-sub">Volumen operativo por modelo</div>
+      </div>
+    </div>
+    <div class="cw-pie"><canvas id="cTipoPie"></canvas></div>
+  </div>
+</div>
+
+<!-- SECCIÓN: TOP 10 RENDIMIENTO -->
+<div class="sec-hd fi fi4">Top 10 Rendimiento de Unidades</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+  <!-- TOP 10 MEJORES -->
+  <div class="cc">
+    <div class="lp-header" style="margin-bottom:12px">
+      <div class="lp-title" style="display:flex;align-items:center;gap:8px">
+        <span style="color:var(--teal);font-size:16px">▲</span>
+        Top 10 Mejores Rendimiento
+      </div>
+    </div>
+    <table id="top10BestTable" style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:#F4F7FF;border-bottom:2px solid var(--blue)">
+          <th style="padding:7px 10px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">#</th>
+          <th style="padding:7px 10px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">UNIDAD</th>
+          <th style="padding:7px 10px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">SEG.</th>
+          <th style="padding:7px 10px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">MES</th>
+          <th style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">KM LIQ.</th>
+          <th style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">REND.</th>
+          <th style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">VS PRES.</th>
+        </tr>
+      </thead>
+      <tbody id="top10BestBody"></tbody>
+    </table>
+  </div>
+
+  <!-- TOP 10 PEORES -->
+  <div class="cc">
+    <div class="lp-header" style="margin-bottom:12px">
+      <div class="lp-title" style="display:flex;align-items:center;gap:8px">
+        <span style="color:var(--red);font-size:16px">▼</span>
+        Top 10 Peores Rendimiento
+      </div>
+    </div>
+    <table id="top10WorstTable" style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:#FFF4F4;border-bottom:2px solid var(--red)">
+          <th style="padding:7px 10px;text-align:center;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">#</th>
+          <th style="padding:7px 10px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">UNIDAD</th>
+          <th style="padding:7px 10px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">SEG.</th>
+          <th style="padding:7px 10px;text-align:left;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">MES</th>
+          <th style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">KM LIQ.</th>
+          <th style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">REND.</th>
+          <th style="padding:7px 10px;text-align:right;font-family:'Outfit',sans-serif;font-size:10px;letter-spacing:.06em;color:#475569">VS PRES.</th>
+        </tr>
+      </thead>
+      <tbody id="top10WorstBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- SECCIÓN: COMPARATIVA (solo Todos) -->
+<div id="compSection">
+  <div class="sec-hd fi">Comparativa Enero vs Febrero</div>
+  <div class="g2 fi">
+    <div class="cc">
+      <div class="cc-head">
+        <div>
+          <div class="cc-title">Segmentos: Ene vs Feb</div>
+          <div class="cc-sub">Variación de rendimiento Km/L</div>
+        </div>
+        <div class="cc-tag">COMPARATIVO</div>
+      </div>
+      <div class="cw-sm"><canvas id="cCompSeg"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="cc-head">
+        <div>
+          <div class="cc-title">Plataformas: Ene vs Feb</div>
+          <div class="cc-sub">Variación de rendimiento Km/L</div>
+        </div>
+        <div class="cc-tag">COMPARATIVO</div>
+      </div>
+      <div class="cw-sm"><canvas id="cCompPlat"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECCIÓN: BAJAS DE RENDIMIENTO -->
+<div class="sec-hd fi fi4">Análisis de Bajas de Rendimiento</div>
+<div class="cc fi fi4" style="margin-bottom:20px">
+  <div class="lp-header">
+    <div class="lp-title">Unidades por debajo del Presupuesto</div>
+    <div class="lp-controls">
+      <div class="lp-stats">
+        <span class="stat-pill red" id="statBajo">— bajo</span>
+        <span class="stat-pill green" id="statOk">— ok</span>
+      </div>
+      <select class="sel" id="lpMes" onchange="renderLPTable()">
+        <option value="Todos">Todos los meses</option>
+        <option value="Ene">Enero</option>
+        <option value="Feb">Febrero</option>
+      </select>
+      <select class="sel" id="lpSeg" onchange="renderLPTable()">
+        <option value="Todos">Todos los segmentos</option>
+        <option value="DIAMANTE">Diamante</option>
+        <option value="ORDINARIO">Ordinario</option>
+        <option value="IMSS">IMSS</option>
+        <option value="OTROS">Otros</option>
+        <option value="VES MEX">Ves Mex</option>
+      </select>
+      <select class="sel" id="lpFilter" onchange="renderLPTable()">
+        <option value="bajo">Solo bajos</option>
+        <option value="todos">Todos</option>
+        <option value="top">Mejores 20</option>
+      </select>
+    </div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Unidad</th>
+          <th>Mes</th>
+          <th>Segmento</th>
+          <th>Plataforma</th>
+          <th>Km Liq.</th>
+          <th>Litros</th>
+          <th>Rend. Real</th>
+          <th>Presup.</th>
+          <th>Diferencia</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="lpBody"></tbody>
+    </table>
+  </div>
+</div>
+
+
+</div><!-- /wrap -->
+
+<script>
+// ════════════════════════════════════════
+// DATASET
+// ════════════════════════════════════════
+const SEG_M=[
+  {mes:"Ene",cat:"DIAMANTE", kms:3119651,litros:776773.6,rend:4.016,count:8205},
+  {mes:"Ene",cat:"ORDINARIO",kms:267264, litros:77531.8, rend:3.447,count:1402},
+  {mes:"Ene",cat:"IMSS",     kms:77994,  litros:21875.3, rend:3.565,count:321},
+  {mes:"Ene",cat:"OTROS",    kms:56961,  litros:15565.9, rend:3.659,count:277},
+  {mes:"Ene",cat:"VES MEX",  kms:14676,  litros:4798.9,  rend:3.058,count:28},
+  {mes:"Feb",cat:"DIAMANTE", kms:1843323,litros:457638.0,rend:4.028,count:5051},
+  {mes:"Feb",cat:"ORDINARIO",kms:175503, litros:51409.0, rend:3.414,count:946},
+  {mes:"Feb",cat:"IMSS",     kms:50602,  litros:13644.6, rend:3.709,count:226},
+  {mes:"Feb",cat:"OTROS",    kms:28320,  litros:8776.6,  rend:3.227,count:141},
+  {mes:"Feb",cat:"VES MEX",  kms:21887,  litros:7572.4,  rend:2.890,count:24},
+];
+const PLAT_M=[
+  {mes:"Ene",cat:"Irizar",   kms:2328551,litros:595662.3,rend:3.909,count:7844},
+  {mes:"Ene",cat:"Marcopolo",kms:931823, litros:217661.7,rend:4.281,count:1477},
+  {mes:"Ene",cat:"Multego",  kms:61832,  litros:17012.7, rend:3.634,count:353},
+  {mes:"Ene",cat:"MCI",      kms:199826, litros:61453.1, rend:3.252,count:496},
+  {mes:"Ene",cat:"Volvo",    kms:14267,  litros:4313.9,  rend:3.307,count:59},
+  {mes:"Feb",cat:"Irizar",   kms:1447017,litros:371624.6,rend:3.894,count:5146},
+  {mes:"Feb",cat:"Marcopolo",kms:614683, litros:146551.0,rend:4.194,count:981},
+  {mes:"Feb",cat:"MCI",      kms:47673,  litros:17918.8, rend:2.660,count:218},
+  {mes:"Feb",cat:"Volvo",    kms:10262,  litros:2564.5,  rend:4.001,count:42},
+];
+const SEG_COLORS={DIAMANTE:"#f5a623",ORDINARIO:"#3d8ef0",IMSS:"#00d4aa",OTROS:"#9b72f5","VES MEX":"#f04760"};
+
+// ════════════════════════════════════════
+// DATOS 2025 (mismos meses que 2026: Ene, Feb)
+// ════════════════════════════════════════
+const SEG_M25=[
+  {mes:"Ene",cat:"DIAMANTE", kms:3076040,litros:800724,rend:3.842},
+  {mes:"Ene",cat:"ORDINARIO",kms:444395, litros:138521,rend:3.208},
+  {mes:"Ene",cat:"IMSS",     kms:54348,  litros:14827, rend:3.665},
+  {mes:"Ene",cat:"OTROS",    kms:38874,  litros:11777, rend:3.301},
+  {mes:"Ene",cat:"VES MEX",  kms:2424,   litros:781,   rend:3.103},
+  {mes:"Feb",cat:"DIAMANTE", kms:2434576,litros:625903,rend:3.890},
+  {mes:"Feb",cat:"ORDINARIO",kms:366037, litros:116066,rend:3.154},
+  {mes:"Feb",cat:"IMSS",     kms:54201,  litros:15663, rend:3.460},
+  {mes:"Feb",cat:"OTROS",    kms:58284,  litros:17254, rend:3.378},
+  {mes:"Feb",cat:"VES MEX",  kms:25627,  litros:8340,  rend:3.073},
+];
+
+const PLAT_M25=[
+  {mes:"Ene",cat:"Irizar",   rend:3.786},
+  {mes:"Ene",cat:"Marcopolo",rend:4.009},
+  {mes:"Ene",cat:"MCI",      rend:2.945},
+  {mes:"Ene",cat:"Multego",  rend:3.028},
+  {mes:"Ene",cat:"Volvo",    rend:null},
+  {mes:"Feb",cat:"Irizar",   rend:3.675},
+  {mes:"Feb",cat:"Marcopolo",rend:4.221},
+  {mes:"Feb",cat:"MCI",      rend:2.982},
+  {mes:"Feb",cat:"Multego",  rend:2.917},
+  {mes:"Feb",cat:"Volvo",    rend:null},
+];
+
+// Ajuste de inventario 2025: litros a restar del total, distribuidos por % km de cada segmento
+const AJUSTE_2025={
+  Ene:2586.54, Feb:1944.45, Mar:3118.04, Abr:4125.00,
+  May:5604.29, Jun:3115.12, Jul:0, Ago:0, Sep:0, Oct:0, Nov:0, Dic:0
+};
+const PLAT_COLORS={Irizar:"#22d3f7",Marcopolo:"#f5a623",MCI:"#f04760",Multego:"#c084fc",Volvo:"#34d399"};
+const MONTHS_ORDER=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+// Tipo de Plataforma data
+const TIPO_M=[
+  {mes:"Ene",cat:"PB 2E",      kms:1356019,litros:340747.0,rend:3.980,count:3653,plat:"Irizar"},
+  {mes:"Ene",cat:"MP 120 MX",  kms:931823, litros:217661.7,rend:4.281,count:1477,plat:"Marcopolo"},
+  {mes:"Ene",cat:"i6 2E",      kms:922615, litros:241788.9,rend:3.816,count:3910,plat:"Irizar"},
+  {mes:"Ene",cat:"J Blanco",   kms:169058, litros:54163.9, rend:3.121,count:419, plat:"MCI"},
+  {mes:"Ene",cat:"G 4500",     kms:30768,  litros:7289.2,  rend:4.221,count:77,  plat:"MCI"},
+  {mes:"Ene",cat:"Multego 2E", kms:53212,  litros:15566.7, rend:3.418,count:335, plat:"Multego"},
+  {mes:"Ene",cat:"Multego 3E", kms:8619,   litros:1446.0,  rend:5.961,count:18,  plat:"Multego"},
+  {mes:"Ene",cat:"i5 2E",      kms:18625,  litros:4539.2,  rend:4.103,count:124, plat:"Irizar"},
+  {mes:"Ene",cat:"i8 2E",      kms:12296,  litros:3249.9,  rend:3.783,count:103, plat:"Irizar"},
+  {mes:"Ene",cat:"Century 3E", kms:17738,  litros:5241.2,  rend:3.384,count:49,  plat:"Irizar"},
+  {mes:"Ene",cat:"Volvo 2E",   kms:14267,  litros:4313.9,  rend:3.307,count:59,  plat:"Volvo"},
+  {mes:"Feb",cat:"PB 2E",      kms:827198, litros:203741.6,rend:4.060,count:2434,plat:"Irizar"},
+  {mes:"Feb",cat:"MP 120 MX",  kms:614683, litros:146551.0,rend:4.194,count:981, plat:"Marcopolo"},
+  {mes:"Feb",cat:"i6 2E",      kms:592465, litros:161063.4,rend:3.678,count:2676,plat:"Irizar"},
+  {mes:"Feb",cat:"J Blanco",   kms:47673,  litros:17918.8, rend:2.660,count:218, plat:"MCI"},
+  {mes:"Feb",cat:"i8 2E",      kms:14181,  litros:3098.6,  rend:4.577,count:25,  plat:"Irizar"},
+  {mes:"Feb",cat:"Century 3E", kms:11270,  litros:2828.5,  rend:3.985,count:8,   plat:"Irizar"},
+  {mes:"Feb",cat:"Volvo 2E",   kms:10262,  litros:2564.5,  rend:4.001,count:42,  plat:"Volvo"},
+  {mes:"Feb",cat:"i5 2E",      kms:1903,   litros:892.5,   rend:2.132,count:3,   plat:"Irizar"},
+];
+const TIPO_COLORS={
+  "PB 2E":"#22d3f7","MP 120 MX":"#f5a623","i6 2E":"#06b6d4",
+  "J Blanco":"#f04760","G 4500":"#f97316","Multego 2E":"#c084fc",
+  "Multego 3E":"#a855f7","i5 2E":"#38bdf8","i8 2E":"#0ea5e9",
+  "Century 3E":"#10b981","Volvo 2E":"#34d399","Intercentury 3E":"#6366f1"
+};
+
+// ════════════════════════════════════════
+// UNIT DATA (embedded)
+// ════════════════════════════════════════
+</script>
+<script>
+// Inline unit data will be loaded here
+const UNITS=[{"mes":"Ene","unidad":9671,"seg":"DIAMANTE","kms":1069,"litros":1025.5,"rend":1.042,"presup":3.019,"diff":-1.977,"plat":"MCI"},{"mes":"Ene","unidad":87,"seg":"DIAMANTE","kms":4207,"litros":1757.7,"rend":2.393,"presup":3.019,"diff":-0.626,"plat":"MCI"},{"mes":"Ene","unidad":9673,"seg":"DIAMANTE","kms":652,"litros":269.7,"rend":2.418,"presup":3.019,"diff":-0.601,"plat":"MCI"},{"mes":"Ene","unidad":84,"seg":"DIAMANTE","kms":5632,"litros":2281.4,"rend":2.469,"presup":3.019,"diff":-0.55,"plat":"MCI"},{"mes":"Ene","unidad":9686,"seg":"DIAMANTE","kms":1185,"litros":468.4,"rend":2.53,"presup":3.915,"diff":-1.385,"plat":"MCI"},{"mes":"Ene","unidad":9874,"seg":"DIAMANTE","kms":4890,"litros":1870.0,"rend":2.615,"presup":3.019,"diff":-0.404,"plat":"MCI"},{"mes":"Ene","unidad":62,"seg":"DIAMANTE","kms":286,"litros":108.1,"rend":2.646,"presup":3.467,"diff":-0.821,"plat":"MCI"},{"mes":"Ene","unidad":9681,"seg":"DIAMANTE","kms":1430,"litros":535.0,"rend":2.673,"presup":3.019,"diff":-0.346,"plat":"MCI"},{"mes":"Ene","unidad":80,"seg":"DIAMANTE","kms":5097,"litros":1889.5,"rend":2.698,"presup":3.019,"diff":-0.321,"plat":"MCI"},{"mes":"Ene","unidad":9871,"seg":"DIAMANTE","kms":3832,"litros":1408.2,"rend":2.721,"presup":3.019,"diff":-0.298,"plat":"MCI"},{"mes":"Ene","unidad":58,"seg":"DIAMANTE","kms":858,"litros":314.1,"rend":2.732,"presup":3.467,"diff":-0.735,"plat":"MCI"},{"mes":"Ene","unidad":9672,"seg":"DIAMANTE","kms":4996,"litros":1799.2,"rend":2.777,"presup":3.019,"diff":-0.242,"plat":"MCI"},{"mes":"Ene","unidad":81,"seg":"DIAMANTE","kms":5628,"litros":2003.4,"rend":2.809,"presup":3.019,"diff":-0.21,"plat":"MCI"},{"mes":"Ene","unidad":9879,"seg":"DIAMANTE","kms":1599,"litros":567.9,"rend":2.816,"presup":3.019,"diff":-0.203,"plat":"MCI"},{"mes":"Ene","unidad":9688,"seg":"DIAMANTE","kms":2370,"litros":834.2,"rend":2.841,"presup":3.019,"diff":-0.178,"plat":"MCI"},{"mes":"Ene","unidad":8832,"seg":"DIAMANTE","kms":11059,"litros":3865.2,"rend":2.861,"presup":3.921,"diff":-1.06,"plat":"Irizar"},{"mes":"Ene","unidad":77,"seg":"DIAMANTE","kms":8476,"litros":2952.3,"rend":2.871,"presup":3.019,"diff":-0.148,"plat":"MCI"},{"mes":"Ene","unidad":8901,"seg":"DIAMANTE","kms":10421,"litros":3615.5,"rend":2.882,"presup":3.921,"diff":-1.039,"plat":"Irizar"},{"mes":"Ene","unidad":9674,"seg":"DIAMANTE","kms":2608,"litros":902.0,"rend":2.891,"presup":3.019,"diff":-0.128,"plat":"MCI"},{"mes":"Ene","unidad":9536,"seg":"DIAMANTE","kms":2653,"litros":913.6,"rend":2.904,"presup":3.517,"diff":-0.613,"plat":"Irizar"},{"mes":"Ene","unidad":9556,"seg":"DIAMANTE","kms":286,"litros":98.4,"rend":2.907,"presup":3.517,"diff":-0.61,"plat":"Irizar"},{"mes":"Ene","unidad":9685,"seg":"DIAMANTE","kms":2574,"litros":873.0,"rend":2.948,"presup":3.915,"diff":-0.967,"plat":"MCI"},{"mes":"Ene","unidad":9527,"seg":"DIAMANTE","kms":2449,"litros":825.9,"rend":2.965,"presup":3.649,"diff":-0.684,"plat":"Irizar"},{"mes":"Ene","unidad":9540,"seg":"DIAMANTE","kms":2163,"litros":727.1,"rend":2.975,"presup":3.649,"diff":-0.674,"plat":"Irizar"},{"mes":"Ene","unidad":8918,"seg":"DIAMANTE","kms":9678,"litros":3233.3,"rend":2.993,"presup":3.921,"diff":-0.928,"plat":"Irizar"},{"mes":"Ene","unidad":8826,"seg":"DIAMANTE","kms":5658,"litros":1887.4,"rend":2.998,"presup":3.921,"diff":-0.923,"plat":"Irizar"},{"mes":"Ene","unidad":9873,"seg":"DIAMANTE","kms":7053,"litros":2345.3,"rend":3.007,"presup":3.019,"diff":-0.012,"plat":"MCI"},{"mes":"Ene","unidad":9683,"seg":"DIAMANTE","kms":5820,"litros":1935.0,"rend":3.008,"presup":3.019,"diff":-0.011,"plat":"MCI"},{"mes":"Ene","unidad":9606,"seg":"DIAMANTE","kms":572,"litros":188.0,"rend":3.043,"presup":3.119,"diff":-0.076,"plat":"Irizar"},{"mes":"Ene","unidad":8825,"seg":"DIAMANTE","kms":8515,"litros":2795.2,"rend":3.046,"presup":3.921,"diff":-0.875,"plat":"Irizar"},{"mes":"Ene","unidad":8905,"seg":"DIAMANTE","kms":11684,"litros":3767.8,"rend":3.101,"presup":3.921,"diff":-0.82,"plat":"Irizar"},{"mes":"Ene","unidad":8920,"seg":"DIAMANTE","kms":12057,"litros":3849.5,"rend":3.132,"presup":3.921,"diff":-0.789,"plat":"Irizar"},{"mes":"Ene","unidad":8923,"seg":"DIAMANTE","kms":10019,"litros":3189.6,"rend":3.141,"presup":3.921,"diff":-0.78,"plat":"Irizar"},{"mes":"Ene","unidad":91,"seg":"DIAMANTE","kms":4326,"litros":1374.8,"rend":3.147,"presup":3.019,"diff":0.128,"plat":"MCI"},{"mes":"Ene","unidad":9560,"seg":"DIAMANTE","kms":3856,"litros":1218.7,"rend":3.164,"presup":3.649,"diff":-0.485,"plat":"Irizar"},{"mes":"Ene","unidad":8911,"seg":"DIAMANTE","kms":9067,"litros":2861.2,"rend":3.169,"presup":3.921,"diff":-0.752,"plat":"Irizar"},{"mes":"Ene","unidad":8917,"seg":"DIAMANTE","kms":10405,"litros":3268.1,"rend":3.184,"presup":3.921,"diff":-0.737,"plat":"Irizar"},{"mes":"Ene","unidad":8827,"seg":"DIAMANTE","kms":9792,"litros":3072.7,"rend":3.187,"presup":3.921,"diff":-0.734,"plat":"Irizar"},{"mes":"Ene","unidad":8916,"seg":"DIAMANTE","kms":10196,"litros":3179.5,"rend":3.207,"presup":3.921,"diff":-0.714,"plat":"Irizar"},{"mes":"Ene","unidad":8912,"seg":"DIAMANTE","kms":14435,"litros":4499.1,"rend":3.208,"presup":3.921,"diff":-0.713,"plat":"Irizar"},{"mes":"Ene","unidad":8922,"seg":"DIAMANTE","kms":11788,"litros":3665.8,"rend":3.216,"presup":3.921,"diff":-0.705,"plat":"Irizar"},{"mes":"Ene","unidad":9569,"seg":"DIAMANTE","kms":12868,"litros":3964.2,"rend":3.246,"presup":3.895,"diff":-0.649,"plat":"Irizar"},{"mes":"Ene","unidad":9531,"seg":"DIAMANTE","kms":5909,"litros":1818.4,"rend":3.25,"presup":3.649,"diff":-0.399,"plat":"Irizar"},{"mes":"Ene","unidad":9121,"seg":"DIAMANTE","kms":2256,"litros":693.6,"rend":3.253,"presup":4.229,"diff":-0.976,"plat":"Irizar"},{"mes":"Ene","unidad":88,"seg":"DIAMANTE","kms":4326,"litros":1324.2,"rend":3.267,"presup":3.019,"diff":0.248,"plat":"MCI"},{"mes":"Ene","unidad":8925,"seg":"DIAMANTE","kms":11843,"litros":3629.1,"rend":3.263,"presup":3.921,"diff":-0.658,"plat":"Irizar"},{"mes":"Ene","unidad":9877,"seg":"DIAMANTE","kms":572,"litros":174.4,"rend":3.28,"presup":3.019,"diff":0.261,"plat":"MCI"},{"mes":"Ene","unidad":9535,"seg":"DIAMANTE","kms":1692,"litros":515.7,"rend":3.281,"presup":3.649,"diff":-0.368,"plat":"Irizar"},{"mes":"Ene","unidad":8831,"seg":"DIAMANTE","kms":11110,"litros":3368.7,"rend":3.298,"presup":3.921,"diff":-0.623,"plat":"Irizar"},{"mes":"Ene","unidad":9123,"seg":"DIAMANTE","kms":14156,"litros":4278.7,"rend":3.308,"presup":3.942,"diff":-0.634,"plat":"Volvo"},{"mes":"Ene","unidad":8924,"seg":"DIAMANTE","kms":9294,"litros":2809.2,"rend":3.308,"presup":3.921,"diff":-0.613,"plat":"Irizar"},{"mes":"Ene","unidad":8830,"seg":"DIAMANTE","kms":12507,"litros":3768.9,"rend":3.318,"presup":3.921,"diff":-0.603,"plat":"Irizar"},{"mes":"Ene","unidad":9618,"seg":"DIAMANTE","kms":572,"litros":172.2,"rend":3.322,"presup":3.649,"diff":-0.327,"plat":"Irizar"},{"mes":"Ene","unidad":8908,"seg":"DIAMANTE","kms":12785,"litros":3849.5,"rend":3.321,"presup":3.921,"diff":-0.6,"plat":"Irizar"},{"mes":"Ene","unidad":8829,"seg":"DIAMANTE","kms":9181,"litros":2753.5,"rend":3.334,"presup":3.921,"diff":-0.587,"plat":"Irizar"},{"mes":"Ene","unidad":8902,"seg":"DIAMANTE","kms":7687,"litros":2300.8,"rend":3.341,"presup":3.921,"diff":-0.58,"plat":"Irizar"},{"mes":"Ene","unidad":9359,"seg":"DIAMANTE","kms":102,"litros":30.4,"rend":3.355,"presup":3.089,"diff":0.266,"plat":"Multego"},{"mes":"Ene","unidad":9360,"seg":"DIAMANTE","kms":286,"litros":85.0,"rend":3.365,"presup":3.089,"diff":0.276,"plat":"Multego"},{"mes":"Ene","unidad":8910,"seg":"DIAMANTE","kms":14285,"litros":4243.8,"rend":3.366,"presup":3.921,"diff":-0.555,"plat":"Irizar"},{"mes":"Ene","unidad":9554,"seg":"DIAMANTE","kms":15695,"litros":4652.2,"rend":3.374,"presup":3.895,"diff":-0.521,"plat":"Irizar"},{"mes":"Ene","unidad":9358,"seg":"DIAMANTE","kms":572,"litros":169.2,"rend":3.381,"presup":3.089,"diff":0.292,"plat":"Multego"},{"mes":"Ene","unidad":9353,"seg":"DIAMANTE","kms":286,"litros":84.0,"rend":3.405,"presup":3.089,"diff":0.316,"plat":"Multego"},{"mes":"Ene","unidad":60,"seg":"DIAMANTE","kms":1956,"litros":574.5,"rend":3.405,"presup":3.467,"diff":-0.062,"plat":"MCI"},{"mes":"Ene","unidad":9525,"seg":"DIAMANTE","kms":2950,"litros":858.2,"rend":3.437,"presup":3.649,"diff":-0.212,"plat":"Irizar"},{"mes":"Ene","unidad":8907,"seg":"DIAMANTE","kms":12546,"litros":3630.2,"rend":3.456,"presup":3.921,"diff":-0.465,"plat":"Irizar"},{"mes":"Ene","unidad":8906,"seg":"DIAMANTE","kms":11933,"litros":3413.8,"rend":3.496,"presup":3.921,"diff":-0.425,"plat":"Irizar"},{"mes":"Ene","unidad":64,"seg":"DIAMANTE","kms":4445,"litros":1265.4,"rend":3.513,"presup":3.467,"diff":0.046,"plat":"MCI"},{"mes":"Ene","unidad":9553,"seg":"DIAMANTE","kms":1880,"litros":534.0,"rend":3.521,"presup":3.649,"diff":-0.128,"plat":"Irizar"},{"mes":"Ene","unidad":83,"seg":"DIAMANTE","kms":3674,"litros":1040.8,"rend":3.53,"presup":3.019,"diff":0.511,"plat":"MCI"},{"mes":"Ene","unidad":8904,"seg":"DIAMANTE","kms":14216,"litros":4006.9,"rend":3.548,"presup":3.921,"diff":-0.373,"plat":"Irizar"},{"mes":"Ene","unidad":9876,"seg":"DIAMANTE","kms":4311,"litros":1213.8,"rend":3.552,"presup":3.019,"diff":0.533,"plat":"MCI"},{"mes":"Ene","unidad":8915,"seg":"DIAMANTE","kms":13083,"litros":3685.5,"rend":3.55,"presup":3.921,"diff":-0.371,"plat":"Irizar"},{"mes":"Ene","unidad":9878,"seg":"DIAMANTE","kms":5073,"litros":1426.9,"rend":3.555,"presup":3.019,"diff":0.536,"plat":"MCI"},{"mes":"Ene","unidad":8914,"seg":"DIAMANTE","kms":13986,"litros":3914.1,"rend":3.573,"presup":3.921,"diff":-0.348,"plat":"Irizar"},{"mes":"Ene","unidad":9543,"seg":"DIAMANTE","kms":5154,"litros":1441.4,"rend":3.576,"presup":3.649,"diff":-0.073,"plat":"Irizar"},{"mes":"Ene","unidad":8834,"seg":"DIAMANTE","kms":14723,"litros":4113.3,"rend":3.579,"presup":3.921,"diff":-0.342,"plat":"Irizar"},{"mes":"Ene","unidad":55,"seg":"DIAMANTE","kms":2051,"litros":571.5,"rend":3.589,"presup":3.467,"diff":0.122,"plat":"MCI"},{"mes":"Ene","unidad":8903,"seg":"DIAMANTE","kms":13824,"litros":3834.1,"rend":3.606,"presup":3.921,"diff":-0.315,"plat":"Irizar"},{"mes":"Ene","unidad":9617,"seg":"DIAMANTE","kms":858,"litros":237.9,"rend":3.607,"presup":3.649,"diff":-0.042,"plat":"Irizar"},{"mes":"Ene","unidad":8823,"seg":"DIAMANTE","kms":12081,"litros":3317.2,"rend":3.642,"presup":3.921,"diff":-0.279,"plat":"Irizar"},{"mes":"Ene","unidad":65,"seg":"DIAMANTE","kms":4207,"litros":1147.8,"rend":3.665,"presup":3.467,"diff":0.198,"plat":"MCI"},{"mes":"Ene","unidad":9533,"seg":"DIAMANTE","kms":26886,"litros":7318.2,"rend":3.674,"presup":3.895,"diff":-0.221,"plat":"Irizar"},{"mes":"Ene","unidad":9676,"seg":"DIAMANTE","kms":4246,"litros":1152.0,"rend":3.686,"presup":3.019,"diff":0.667,"plat":"MCI"},{"mes":"Ene","unidad":9557,"seg":"DIAMANTE","kms":12076,"litros":3275.4,"rend":3.687,"presup":3.895,"diff":-0.208,"plat":"Irizar"},{"mes":"Ene","unidad":9562,"seg":"DIAMANTE","kms":6054,"litros":1635.9,"rend":3.701,"presup":3.895,"diff":-0.194,"plat":"Irizar"},{"mes":"Ene","unidad":9552,"seg":"DIAMANTE","kms":13785,"litros":3719.8,"rend":3.706,"presup":3.895,"diff":-0.189,"plat":"Irizar"},{"mes":"Ene","unidad":9551,"seg":"DIAMANTE","kms":10668,"litros":2865.9,"rend":3.722,"presup":3.895,"diff":-0.173,"plat":"Irizar"},{"mes":"Ene","unidad":9590,"seg":"DIAMANTE","kms":9381,"litros":2516.9,"rend":3.727,"presup":3.517,"diff":0.21,"plat":"Irizar"},{"mes":"Ene","unidad":8909,"seg":"DIAMANTE","kms":14735,"litros":3949.8,"rend":3.731,"presup":3.921,"diff":-0.19,"plat":"Irizar"},{"mes":"Ene","unidad":9542,"seg":"DIAMANTE","kms":23951,"litros":6390.5,"rend":3.748,"presup":3.895,"diff":-0.147,"plat":"Irizar"},{"mes":"Ene","unidad":9566,"seg":"DIAMANTE","kms":4783,"litros":1275.6,"rend":3.75,"presup":3.895,"diff":-0.145,"plat":"Irizar"},{"mes":"Ene","unidad":93,"seg":"DIAMANTE","kms":4445,"litros":1180.1,"rend":3.767,"presup":3.019,"diff":0.748,"plat":"MCI"},{"mes":"Ene","unidad":9825,"seg":"DIAMANTE","kms":572,"litros":151.6,"rend":3.773,"presup":3.578,"diff":0.195,"plat":"Irizar"},{"mes":"Ene","unidad":8951,"seg":"DIAMANTE","kms":12215,"litros":3231.9,"rend":3.78,"presup":3.018,"diff":0.762,"plat":"Irizar"},{"mes":"Ene","unidad":8833,"seg":"DIAMANTE","kms":13646,"litros":3606.5,"rend":3.784,"presup":3.921,"diff":-0.137,"plat":"Irizar"},{"mes":"Ene","unidad":8225,"seg":"DIAMANTE","kms":23597,"litros":6225.8,"rend":3.79,"presup":4.064,"diff":-0.274,"plat":"Marcopolo"},{"mes":"Ene","unidad":8205,"seg":"DIAMANTE","kms":23971,"litros":6295.4,"rend":3.808,"presup":4.064,"diff":-0.256,"plat":"Marcopolo"},{"mes":"Ene","unidad":9591,"seg":"DIAMANTE","kms":11105,"litros":2901.9,"rend":3.827,"presup":3.895,"diff":-0.068,"plat":"Irizar"},{"mes":"Ene","unidad":9568,"seg":"DIAMANTE","kms":12073,"litros":3143.0,"rend":3.841,"presup":3.895,"diff":-0.054,"plat":"Irizar"},{"mes":"Ene","unidad":9534,"seg":"DIAMANTE","kms":3586,"litros":922.7,"rend":3.886,"presup":3.517,"diff":0.369,"plat":"Irizar"},{"mes":"Ene","unidad":8819,"seg":"DIAMANTE","kms":22804,"litros":5847.8,"rend":3.9,"presup":3.921,"diff":-0.021,"plat":"Irizar"},{"mes":"Ene","unidad":9530,"seg":"DIAMANTE","kms":26613,"litros":6807.6,"rend":3.909,"presup":3.895,"diff":0.014,"plat":"Irizar"},{"mes":"Ene","unidad":8913,"seg":"DIAMANTE","kms":15837,"litros":4039.4,"rend":3.921,"presup":3.921,"diff":0.0,"plat":"Irizar"},{"mes":"Ene","unidad":8232,"seg":"DIAMANTE","kms":23424,"litros":5970.6,"rend":3.923,"presup":4.064,"diff":-0.141,"plat":"Marcopolo"},{"mes":"Ene","unidad":9567,"seg":"DIAMANTE","kms":16720,"litros":4259.9,"rend":3.925,"presup":3.895,"diff":0.03,"plat":"Irizar"},{"mes":"Ene","unidad":9581,"seg":"DIAMANTE","kms":23600,"litros":6012.3,"rend":3.925,"presup":3.895,"diff":0.03,"plat":"Irizar"},{"mes":"Ene","unidad":9124,"seg":"DIAMANTE","kms":23708,"litros":6037.4,"rend":3.927,"presup":3.921,"diff":0.006,"plat":"Irizar"},{"mes":"Ene","unidad":9558,"seg":"DIAMANTE","kms":16737,"litros":4256.8,"rend":3.932,"presup":3.895,"diff":0.037,"plat":"Irizar"},{"mes":"Ene","unidad":8921,"seg":"DIAMANTE","kms":13791,"litros":3497.6,"rend":3.943,"presup":3.921,"diff":0.022,"plat":"Irizar"},{"mes":"Ene","unidad":8224,"seg":"DIAMANTE","kms":14322,"litros":3628.5,"rend":3.947,"presup":4.064,"diff":-0.117,"plat":"Marcopolo"},{"mes":"Ene","unidad":8228,"seg":"DIAMANTE","kms":23613,"litros":5974.0,"rend":3.953,"presup":4.064,"diff":-0.111,"plat":"Marcopolo"},{"mes":"Ene","unidad":8210,"seg":"DIAMANTE","kms":13883,"litros":3511.0,"rend":3.954,"presup":4.064,"diff":-0.11,"plat":"Marcopolo"},{"mes":"Ene","unidad":9585,"seg":"DIAMANTE","kms":29934,"litros":7562.7,"rend":3.958,"presup":3.895,"diff":0.063,"plat":"Irizar"},{"mes":"Ene","unidad":8212,"seg":"DIAMANTE","kms":22119,"litros":5574.0,"rend":3.968,"presup":4.064,"diff":-0.096,"plat":"Marcopolo"},{"mes":"Ene","unidad":9539,"seg":"DIAMANTE","kms":24895,"litros":6232.0,"rend":3.995,"presup":3.895,"diff":0.1,"plat":"Irizar"},{"mes":"Ene","unidad":8237,"seg":"DIAMANTE","kms":25922,"litros":6487.1,"rend":3.996,"presup":4.064,"diff":-0.068,"plat":"Marcopolo"},{"mes":"Ene","unidad":9675,"seg":"DIAMANTE","kms":4445,"litros":1111.2,"rend":4.0,"presup":3.019,"diff":0.981,"plat":"MCI"},{"mes":"Ene","unidad":8236,"seg":"DIAMANTE","kms":24711,"litros":6172.4,"rend":4.003,"presup":4.064,"diff":-0.061,"plat":"Marcopolo"},{"mes":"Ene","unidad":9580,"seg":"DIAMANTE","kms":27792,"litros":6920.9,"rend":4.016,"presup":3.895,"diff":0.121,"plat":"Irizar"},{"mes":"Ene","unidad":9582,"seg":"DIAMANTE","kms":25005,"litros":6223.9,"rend":4.018,"presup":3.895,"diff":0.123,"plat":"Irizar"},{"mes":"Ene","unidad":9549,"seg":"DIAMANTE","kms":26619,"litros":6614.7,"rend":4.024,"presup":3.895,"diff":0.129,"plat":"Irizar"},{"mes":"Ene","unidad":8231,"seg":"DIAMANTE","kms":26034,"litros":6458.6,"rend":4.031,"presup":4.064,"diff":-0.033,"plat":"Marcopolo"},{"mes":"Ene","unidad":9565,"seg":"DIAMANTE","kms":15212,"litros":3771.3,"rend":4.034,"presup":3.895,"diff":0.139,"plat":"Irizar"},{"mes":"Ene","unidad":8804,"seg":"DIAMANTE","kms":23771,"litros":5877.9,"rend":4.044,"presup":3.921,"diff":0.123,"plat":"Irizar"},{"mes":"Ene","unidad":92,"seg":"DIAMANTE","kms":3555,"litros":877.8,"rend":4.05,"presup":3.019,"diff":1.031,"plat":"MCI"},{"mes":"Ene","unidad":9579,"seg":"DIAMANTE","kms":1545,"litros":381.1,"rend":4.054,"presup":3.517,"diff":0.537,"plat":"Irizar"},{"mes":"Ene","unidad":9574,"seg":"DIAMANTE","kms":28021,"litros":6900.0,"rend":4.061,"presup":3.895,"diff":0.166,"plat":"Irizar"},{"mes":"Ene","unidad":8824,"seg":"DIAMANTE","kms":24386,"litros":5998.7,"rend":4.065,"presup":3.921,"diff":0.144,"plat":"Irizar"},{"mes":"Ene","unidad":9522,"seg":"DIAMANTE","kms":13478,"litros":3287.6,"rend":4.1,"presup":3.895,"diff":0.205,"plat":"Irizar"},{"mes":"Ene","unidad":9547,"seg":"DIAMANTE","kms":392,"litros":95.6,"rend":4.1,"presup":3.649,"diff":0.451,"plat":"Irizar"},{"mes":"Ene","unidad":8213,"seg":"DIAMANTE","kms":25424,"litros":6185.9,"rend":4.11,"presup":4.064,"diff":0.046,"plat":"Marcopolo"},{"mes":"Ene","unidad":9555,"seg":"DIAMANTE","kms":17358,"litros":4218.6,"rend":4.115,"presup":3.895,"diff":0.22,"plat":"Irizar"},{"mes":"Ene","unidad":9528,"seg":"DIAMANTE","kms":26106,"litros":6343.1,"rend":4.116,"presup":3.895,"diff":0.221,"plat":"Irizar"},{"mes":"Ene","unidad":8221,"seg":"DIAMANTE","kms":22380,"litros":5430.8,"rend":4.121,"presup":4.064,"diff":0.057,"plat":"Marcopolo"},{"mes":"Ene","unidad":9573,"seg":"DIAMANTE","kms":29335,"litros":7114.3,"rend":4.123,"presup":3.895,"diff":0.228,"plat":"Irizar"},{"mes":"Ene","unidad":8230,"seg":"DIAMANTE","kms":27454,"litros":6652.4,"rend":4.127,"presup":4.064,"diff":0.063,"plat":"Marcopolo"},{"mes":"Ene","unidad":8226,"seg":"DIAMANTE","kms":25419,"litros":6146.4,"rend":4.136,"presup":4.064,"diff":0.072,"plat":"Marcopolo"},{"mes":"Ene","unidad":9545,"seg":"DIAMANTE","kms":25900,"litros":6248.6,"rend":4.145,"presup":3.895,"diff":0.25,"plat":"Irizar"},{"mes":"Ene","unidad":8822,"seg":"DIAMANTE","kms":23830,"litros":5741.1,"rend":4.151,"presup":3.921,"diff":0.23,"plat":"Irizar"},{"mes":"Ene","unidad":9583,"seg":"DIAMANTE","kms":28534,"litros":6872.7,"rend":4.152,"presup":3.895,"diff":0.257,"plat":"Irizar"},{"mes":"Ene","unidad":9577,"seg":"DIAMANTE","kms":25897,"litros":6235.6,"rend":4.153,"presup":3.895,"diff":0.258,"plat":"Irizar"},{"mes":"Ene","unidad":8214,"seg":"DIAMANTE","kms":22719,"litros":5463.4,"rend":4.158,"presup":4.064,"diff":0.094,"plat":"Marcopolo"},{"mes":"Ene","unidad":9586,"seg":"DIAMANTE","kms":18293,"litros":4397.0,"rend":4.16,"presup":3.895,"diff":0.265,"plat":"Irizar"},{"mes":"Ene","unidad":9803,"seg":"DIAMANTE","kms":572,"litros":137.4,"rend":4.163,"presup":3.578,"diff":0.585,"plat":"Irizar"},{"mes":"Ene","unidad":8222,"seg":"DIAMANTE","kms":23629,"litros":5660.8,"rend":4.174,"presup":4.064,"diff":0.11,"plat":"Marcopolo"},{"mes":"Ene","unidad":9578,"seg":"DIAMANTE","kms":22648,"litros":5420.8,"rend":4.178,"presup":3.895,"diff":0.283,"plat":"Irizar"},{"mes":"Ene","unidad":8812,"seg":"DIAMANTE","kms":23068,"litros":5519.0,"rend":4.18,"presup":3.921,"diff":0.259,"plat":"Irizar"},{"mes":"Ene","unidad":9564,"seg":"DIAMANTE","kms":15370,"litros":3671.7,"rend":4.186,"presup":3.895,"diff":0.291,"plat":"Irizar"},{"mes":"Ene","unidad":8821,"seg":"DIAMANTE","kms":24558,"litros":5864.2,"rend":4.188,"presup":3.921,"diff":0.267,"plat":"Irizar"},{"mes":"Ene","unidad":9546,"seg":"DIAMANTE","kms":29979,"litros":7147.3,"rend":4.194,"presup":3.895,"diff":0.299,"plat":"Irizar"},{"mes":"Ene","unidad":8811,"seg":"DIAMANTE","kms":15549,"litros":3689.7,"rend":4.214,"presup":3.921,"diff":0.293,"plat":"Irizar"},{"mes":"Ene","unidad":9570,"seg":"DIAMANTE","kms":19799,"litros":4683.2,"rend":4.228,"presup":3.895,"diff":0.333,"plat":"Irizar"},{"mes":"Ene","unidad":8227,"seg":"DIAMANTE","kms":23251,"litros":5492.1,"rend":4.234,"presup":4.064,"diff":0.17,"plat":"Marcopolo"},{"mes":"Ene","unidad":8202,"seg":"DIAMANTE","kms":24709,"litros":5831.8,"rend":4.237,"presup":4.064,"diff":0.173,"plat":"Marcopolo"},{"mes":"Ene","unidad":59,"seg":"DIAMANTE","kms":1144,"litros":270.0,"rend":4.237,"presup":3.467,"diff":0.77,"plat":"MCI"},{"mes":"Ene","unidad":9571,"seg":"DIAMANTE","kms":27608,"litros":6509.9,"rend":4.241,"presup":3.895,"diff":0.346,"plat":"Irizar"},{"mes":"Ene","unidad":8218,"seg":"DIAMANTE","kms":27882,"litros":6554.3,"rend":4.254,"presup":4.064,"diff":0.19,"plat":"Marcopolo"},{"mes":"Ene","unidad":8815,"seg":"DIAMANTE","kms":26655,"litros":6258.9,"rend":4.259,"presup":3.921,"diff":0.338,"plat":"Irizar"},{"mes":"Ene","unidad":8816,"seg":"DIAMANTE","kms":25366,"litros":5937.5,"rend":4.272,"presup":3.921,"diff":0.351,"plat":"Irizar"},{"mes":"Ene","unidad":9122,"seg":"DIAMANTE","kms":4062,"litros":942.0,"rend":4.312,"presup":3.424,"diff":0.888,"plat":"Multego"},{"mes":"Ene","unidad":9521,"seg":"DIAMANTE","kms":23257,"litros":5381.5,"rend":4.322,"presup":3.895,"diff":0.427,"plat":"Irizar"},{"mes":"Ene","unidad":8229,"seg":"DIAMANTE","kms":24187,"litros":5592.7,"rend":4.325,"presup":4.064,"diff":0.261,"plat":"Marcopolo"},{"mes":"Ene","unidad":8813,"seg":"DIAMANTE","kms":24952,"litros":5763.0,"rend":4.33,"presup":3.921,"diff":0.409,"plat":"Irizar"},{"mes":"Ene","unidad":8211,"seg":"DIAMANTE","kms":26895,"litros":6192.1,"rend":4.343,"presup":4.064,"diff":0.279,"plat":"Marcopolo"},{"mes":"Ene","unidad":8810,"seg":"DIAMANTE","kms":20665,"litros":4754.9,"rend":4.346,"presup":3.921,"diff":0.425,"plat":"Irizar"},{"mes":"Ene","unidad":8215,"seg":"DIAMANTE","kms":14320,"litros":3273.2,"rend":4.375,"presup":4.064,"diff":0.311,"plat":"Marcopolo"},{"mes":"Ene","unidad":9584,"seg":"DIAMANTE","kms":28009,"litros":6400.9,"rend":4.376,"presup":3.895,"diff":0.481,"plat":"Irizar"},{"mes":"Ene","unidad":8805,"seg":"DIAMANTE","kms":23764,"litros":5427.3,"rend":4.379,"presup":3.921,"diff":0.458,"plat":"Irizar"},{"mes":"Ene","unidad":8220,"seg":"DIAMANTE","kms":28693,"litros":6535.6,"rend":4.39,"presup":4.064,"diff":0.326,"plat":"Marcopolo"},{"mes":"Ene","unidad":8818,"seg":"DIAMANTE","kms":14942,"litros":3402.6,"rend":4.391,"presup":3.921,"diff":0.47,"plat":"Irizar"},{"mes":"Ene","unidad":8217,"seg":"DIAMANTE","kms":29328,"litros":6676.5,"rend":4.393,"presup":4.064,"diff":0.329,"plat":"Marcopolo"},{"mes":"Ene","unidad":8204,"seg":"DIAMANTE","kms":27569,"litros":6261.4,"rend":4.403,"presup":4.064,"diff":0.339,"plat":"Marcopolo"},{"mes":"Ene","unidad":8807,"seg":"DIAMANTE","kms":27579,"litros":6256.5,"rend":4.408,"presup":3.921,"diff":0.487,"plat":"Irizar"},{"mes":"Ene","unidad":9572,"seg":"DIAMANTE","kms":22478,"litros":5097.1,"rend":4.41,"presup":3.895,"diff":0.515,"plat":"Irizar"},{"mes":"Ene","unidad":8238,"seg":"DIAMANTE","kms":25616,"litros":5803.2,"rend":4.414,"presup":4.064,"diff":0.35,"plat":"Marcopolo"},{"mes":"Ene","unidad":8234,"seg":"DIAMANTE","kms":23428,"litros":5302.1,"rend":4.419,"presup":4.064,"diff":0.355,"plat":"Marcopolo"},{"mes":"Ene","unidad":9537,"seg":"DIAMANTE","kms":29516,"litros":6664.8,"rend":4.429,"presup":3.895,"diff":0.534,"plat":"Irizar"},{"mes":"Ene","unidad":9589,"seg":"DIAMANTE","kms":24213,"litros":5454.4,"rend":4.439,"presup":3.895,"diff":0.544,"plat":"Irizar"},{"mes":"Ene","unidad":8808,"seg":"DIAMANTE","kms":17335,"litros":3896.8,"rend":4.449,"presup":3.921,"diff":0.528,"plat":"Irizar"},{"mes":"Ene","unidad":9576,"seg":"DIAMANTE","kms":23050,"litros":5170.7,"rend":4.458,"presup":3.895,"diff":0.563,"plat":"Irizar"},{"mes":"Ene","unidad":8209,"seg":"DIAMANTE","kms":28550,"litros":6385.8,"rend":4.471,"presup":4.064,"diff":0.407,"plat":"Marcopolo"},{"mes":"Ene","unidad":9563,"seg":"DIAMANTE","kms":8663,"litros":1930.7,"rend":4.487,"presup":3.895,"diff":0.592,"plat":"Irizar"},{"mes":"Ene","unidad":9529,"seg":"DIAMANTE","kms":25271,"litros":5627.5,"rend":4.491,"presup":3.895,"diff":0.596,"plat":"Irizar"},{"mes":"Ene","unidad":8239,"seg":"DIAMANTE","kms":19810,"litros":4408.6,"rend":4.493,"presup":4.064,"diff":0.429,"plat":"Marcopolo"},{"mes":"Ene","unidad":8814,"seg":"DIAMANTE","kms":25397,"litros":5647.1,"rend":4.497,"presup":3.921,"diff":0.576,"plat":"Irizar"},{"mes":"Ene","unidad":9532,"seg":"DIAMANTE","kms":24180,"litros":5373.8,"rend":4.5,"presup":3.895,"diff":0.605,"plat":"Irizar"},{"mes":"Ene","unidad":8802,"seg":"DIAMANTE","kms":17290,"litros":3842.1,"rend":4.5,"presup":3.921,"diff":0.579,"plat":"Irizar"},{"mes":"Ene","unidad":8233,"seg":"DIAMANTE","kms":21245,"litros":4710.0,"rend":4.511,"presup":4.064,"diff":0.447,"plat":"Marcopolo"},{"mes":"Ene","unidad":8801,"seg":"DIAMANTE","kms":23832,"litros":5281.3,"rend":4.513,"presup":3.921,"diff":0.592,"plat":"Irizar"},{"mes":"Ene","unidad":90,"seg":"DIAMANTE","kms":3912,"litros":864.0,"rend":4.528,"presup":3.019,"diff":1.509,"plat":"MCI"},{"mes":"Ene","unidad":9550,"seg":"DIAMANTE","kms":23846,"litros":5262.3,"rend":4.531,"presup":3.895,"diff":0.636,"plat":"Irizar"},{"mes":"Ene","unidad":8235,"seg":"DIAMANTE","kms":21609,"litros":4748.6,"rend":4.551,"presup":4.064,"diff":0.487,"plat":"Marcopolo"},{"mes":"Ene","unidad":8206,"seg":"DIAMANTE","kms":28130,"litros":6169.4,"rend":4.56,"presup":4.064,"diff":0.496,"plat":"Marcopolo"},{"mes":"Ene","unidad":8203,"seg":"DIAMANTE","kms":13772,"litros":3008.7,"rend":4.577,"presup":4.064,"diff":0.513,"plat":"Marcopolo"},{"mes":"Ene","unidad":8803,"seg":"DIAMANTE","kms":25138,"litros":5490.1,"rend":4.579,"presup":3.921,"diff":0.658,"plat":"Irizar"},{"mes":"Ene","unidad":8208,"seg":"DIAMANTE","kms":27575,"litros":6004.2,"rend":4.593,"presup":4.064,"diff":0.529,"plat":"Marcopolo"},{"mes":"Ene","unidad":8806,"seg":"DIAMANTE","kms":25456,"litros":5542.6,"rend":4.593,"presup":3.921,"diff":0.672,"plat":"Irizar"},{"mes":"Ene","unidad":9588,"seg":"DIAMANTE","kms":22756,"litros":4952.9,"rend":4.594,"presup":3.895,"diff":0.699,"plat":"Irizar"},{"mes":"Ene","unidad":8201,"seg":"DIAMANTE","kms":27212,"litros":5902.7,"rend":4.61,"presup":4.064,"diff":0.546,"plat":"Marcopolo"},{"mes":"Ene","unidad":9559,"seg":"DIAMANTE","kms":16468,"litros":3553.8,"rend":4.634,"presup":3.895,"diff":0.739,"plat":"Irizar"},{"mes":"Ene","unidad":9575,"seg":"DIAMANTE","kms":27257,"litros":5869.2,"rend":4.644,"presup":3.895,"diff":0.749,"plat":"Irizar"},{"mes":"Ene","unidad":9544,"seg":"DIAMANTE","kms":26602,"litros":5710.0,"rend":4.659,"presup":3.895,"diff":0.764,"plat":"Irizar"},{"mes":"Ene","unidad":8216,"seg":"DIAMANTE","kms":24375,"litros":5155.0,"rend":4.728,"presup":4.064,"diff":0.664,"plat":"Marcopolo"},{"mes":"Ene","unidad":8240,"seg":"DIAMANTE","kms":28107,"litros":5942.0,"rend":4.73,"presup":4.064,"diff":0.666,"plat":"Marcopolo"},{"mes":"Ene","unidad":85,"seg":"DIAMANTE","kms":2574,"litros":537.3,"rend":4.791,"presup":3.019,"diff":1.772,"plat":"MCI"},{"mes":"Ene","unidad":8207,"seg":"DIAMANTE","kms":24638,"litros":5135.2,"rend":4.798,"presup":4.064,"diff":0.734,"plat":"Marcopolo"},{"mes":"Ene","unidad":9587,"seg":"DIAMANTE","kms":22836,"litros":4749.0,"rend":4.809,"presup":3.895,"diff":0.914,"plat":"Irizar"},{"mes":"Ene","unidad":9682,"seg":"DIAMANTE","kms":2903,"litros":602.9,"rend":4.815,"presup":3.019,"diff":1.796,"plat":"MCI"},{"mes":"Ene","unidad":70,"seg":"DIAMANTE","kms":2860,"litros":588.0,"rend":4.864,"presup":3.467,"diff":1.397,"plat":"MCI"},{"mes":"Ene","unidad":8219,"seg":"DIAMANTE","kms":18013,"litros":3599.3,"rend":5.005,"presup":4.064,"diff":0.941,"plat":"Marcopolo"},{"mes":"Ene","unidad":8809,"seg":"DIAMANTE","kms":21196,"litros":4232.4,"rend":5.008,"presup":3.921,"diff":1.087,"plat":"Irizar"},{"mes":"Ene","unidad":9690,"seg":"DIAMANTE","kms":1890,"litros":373.6,"rend":5.059,"presup":3.019,"diff":2.04,"plat":"MCI"},{"mes":"Ene","unidad":9524,"seg":"DIAMANTE","kms":2179,"litros":412.6,"rend":5.281,"presup":3.649,"diff":1.632,"plat":"Irizar"},{"mes":"Ene","unidad":9833,"seg":"DIAMANTE","kms":572,"litros":106.4,"rend":5.376,"presup":3.578,"diff":1.798,"plat":"Irizar"},{"mes":"Ene","unidad":9678,"seg":"DIAMANTE","kms":2903,"litros":501.5,"rend":5.789,"presup":3.019,"diff":2.77,"plat":"MCI"},{"mes":"Ene","unidad":78,"seg":"DIAMANTE","kms":2951,"litros":485.5,"rend":6.078,"presup":3.019,"diff":3.059,"plat":"MCI"},{"mes":"Ene","unidad":72,"seg":"DIAMANTE","kms":3555,"litros":496.5,"rend":7.16,"presup":3.467,"diff":3.693,"plat":"MCI"},{"mes":"Ene","unidad":75,"seg":"DIAMANTE","kms":1590,"litros":208.7,"rend":7.619,"presup":3.467,"diff":4.152,"plat":"MCI"},{"mes":"Ene","unidad":71,"seg":"DIAMANTE","kms":1144,"litros":119.2,"rend":9.597,"presup":3.467,"diff":6.13,"plat":"MCI"},{"mes":"Feb","unidad":91,"seg":"DIAMANTE","kms":652,"litros":348.8,"rend":1.869,"presup":3.087,"diff":-1.218,"plat":"MCI"},{"mes":"Feb","unidad":9879,"seg":"DIAMANTE","kms":392,"litros":186.4,"rend":2.103,"presup":3.087,"diff":-0.984,"plat":"MCI"},{"mes":"Feb","unidad":9683,"seg":"DIAMANTE","kms":93,"litros":44.0,"rend":2.114,"presup":3.087,"diff":-0.973,"plat":"MCI"},{"mes":"Feb","unidad":84,"seg":"DIAMANTE","kms":648,"litros":288.3,"rend":2.248,"presup":3.087,"diff":-0.839,"plat":"MCI"},{"mes":"Feb","unidad":9672,"seg":"DIAMANTE","kms":626,"litros":264.4,"rend":2.368,"presup":3.087,"diff":-0.719,"plat":"MCI"},{"mes":"Feb","unidad":9673,"seg":"DIAMANTE","kms":652,"litros":274.4,"rend":2.376,"presup":3.087,"diff":-0.711,"plat":"MCI"},{"mes":"Feb","unidad":87,"seg":"DIAMANTE","kms":572,"litros":229.4,"rend":2.493,"presup":3.087,"diff":-0.594,"plat":"MCI"},{"mes":"Feb","unidad":8915,"seg":"DIAMANTE","kms":6195,"litros":2465.2,"rend":2.513,"presup":3.4,"diff":-0.887,"plat":"Irizar"},{"mes":"Feb","unidad":9876,"seg":"DIAMANTE","kms":652,"litros":249.5,"rend":2.613,"presup":3.087,"diff":-0.474,"plat":"MCI"},{"mes":"Feb","unidad":8829,"seg":"DIAMANTE","kms":7362,"litros":2813.4,"rend":2.617,"presup":3.4,"diff":-0.783,"plat":"Irizar"},{"mes":"Feb","unidad":8903,"seg":"DIAMANTE","kms":5967,"litros":2276.4,"rend":2.621,"presup":3.4,"diff":-0.779,"plat":"Irizar"},{"mes":"Feb","unidad":8920,"seg":"DIAMANTE","kms":6608,"litros":2483.4,"rend":2.661,"presup":3.4,"diff":-0.739,"plat":"Irizar"},{"mes":"Feb","unidad":80,"seg":"DIAMANTE","kms":648,"litros":242.9,"rend":2.668,"presup":3.087,"diff":-0.419,"plat":"MCI"},{"mes":"Feb","unidad":9873,"seg":"DIAMANTE","kms":1536,"litros":576.2,"rend":2.666,"presup":3.087,"diff":-0.421,"plat":"MCI"},{"mes":"Feb","unidad":8826,"seg":"DIAMANTE","kms":6518,"litros":2435.2,"rend":2.677,"presup":3.4,"diff":-0.723,"plat":"Irizar"},{"mes":"Feb","unidad":8832,"seg":"DIAMANTE","kms":6134,"litros":2256.3,"rend":2.719,"presup":3.4,"diff":-0.681,"plat":"Irizar"},{"mes":"Feb","unidad":8925,"seg":"DIAMANTE","kms":4588,"litros":1614.0,"rend":2.843,"presup":3.4,"diff":-0.557,"plat":"Irizar"},{"mes":"Feb","unidad":8901,"seg":"DIAMANTE","kms":8144,"litros":2838.8,"rend":2.869,"presup":3.4,"diff":-0.531,"plat":"Irizar"},{"mes":"Feb","unidad":8923,"seg":"DIAMANTE","kms":6211,"litros":2158.0,"rend":2.878,"presup":3.4,"diff":-0.522,"plat":"Irizar"},{"mes":"Feb","unidad":8908,"seg":"DIAMANTE","kms":4695,"litros":1589.7,"rend":2.953,"presup":3.4,"diff":-0.447,"plat":"Irizar"},{"mes":"Feb","unidad":8913,"seg":"DIAMANTE","kms":6552,"litros":2199.9,"rend":2.978,"presup":3.4,"diff":-0.422,"plat":"Irizar"},{"mes":"Feb","unidad":8911,"seg":"DIAMANTE","kms":6395,"litros":2150.9,"rend":2.973,"presup":3.4,"diff":-0.427,"plat":"Irizar"},{"mes":"Feb","unidad":8907,"seg":"DIAMANTE","kms":7608,"litros":2550.8,"rend":2.983,"presup":3.4,"diff":-0.417,"plat":"Irizar"},{"mes":"Feb","unidad":8912,"seg":"DIAMANTE","kms":7937,"litros":2616.0,"rend":3.034,"presup":3.4,"diff":-0.366,"plat":"Irizar"},{"mes":"Feb","unidad":9874,"seg":"DIAMANTE","kms":588,"litros":192.3,"rend":3.058,"presup":3.087,"diff":-0.029,"plat":"MCI"},{"mes":"Feb","unidad":8916,"seg":"DIAMANTE","kms":7552,"litros":2463.8,"rend":3.065,"presup":3.4,"diff":-0.335,"plat":"Irizar"},{"mes":"Feb","unidad":8918,"seg":"DIAMANTE","kms":5905,"litros":1913.3,"rend":3.086,"presup":3.4,"diff":-0.314,"plat":"Irizar"},{"mes":"Feb","unidad":8921,"seg":"DIAMANTE","kms":7643,"litros":2472.5,"rend":3.091,"presup":3.4,"diff":-0.309,"plat":"Irizar"},{"mes":"Feb","unidad":8909,"seg":"DIAMANTE","kms":6668,"litros":2150.2,"rend":3.101,"presup":3.4,"diff":-0.299,"plat":"Irizar"},{"mes":"Feb","unidad":8825,"seg":"DIAMANTE","kms":7372,"litros":2377.6,"rend":3.101,"presup":3.4,"diff":-0.299,"plat":"Irizar"},{"mes":"Feb","unidad":8906,"seg":"DIAMANTE","kms":7233,"litros":2318.6,"rend":3.12,"presup":3.4,"diff":-0.28,"plat":"Irizar"},{"mes":"Feb","unidad":8902,"seg":"DIAMANTE","kms":7007,"litros":2221.4,"rend":3.154,"presup":3.4,"diff":-0.246,"plat":"Irizar"},{"mes":"Feb","unidad":8922,"seg":"DIAMANTE","kms":6742,"litros":2137.5,"rend":3.154,"presup":3.4,"diff":-0.246,"plat":"Irizar"},{"mes":"Feb","unidad":8917,"seg":"DIAMANTE","kms":7424,"litros":2339.1,"rend":3.174,"presup":3.4,"diff":-0.226,"plat":"Irizar"},{"mes":"Feb","unidad":8239,"seg":"DIAMANTE","kms":8926,"litros":2809.9,"rend":3.177,"presup":4.259,"diff":-1.082,"plat":"Marcopolo"},{"mes":"Feb","unidad":9531,"seg":"DIAMANTE","kms":1144,"litros":359.2,"rend":3.185,"presup":3.535,"diff":-0.35,"plat":"Irizar"},{"mes":"Feb","unidad":9617,"seg":"DIAMANTE","kms":1144,"litros":357.6,"rend":3.199,"presup":3.535,"diff":-0.336,"plat":"Irizar"},{"mes":"Feb","unidad":8827,"seg":"DIAMANTE","kms":7991,"litros":2474.4,"rend":3.229,"presup":3.4,"diff":-0.171,"plat":"Irizar"},{"mes":"Feb","unidad":8830,"seg":"DIAMANTE","kms":7406,"litros":2278.8,"rend":3.25,"presup":3.4,"diff":-0.15,"plat":"Irizar"},{"mes":"Feb","unidad":8823,"seg":"DIAMANTE","kms":9878,"litros":3033.8,"rend":3.256,"presup":3.675,"diff":-0.419,"plat":"Irizar"},{"mes":"Feb","unidad":8904,"seg":"DIAMANTE","kms":7819,"litros":2397.9,"rend":3.261,"presup":3.4,"diff":-0.139,"plat":"Irizar"},{"mes":"Feb","unidad":8910,"seg":"DIAMANTE","kms":7659,"litros":2332.1,"rend":3.284,"presup":3.4,"diff":-0.116,"plat":"Irizar"},{"mes":"Feb","unidad":9543,"seg":"DIAMANTE","kms":1430,"litros":432.0,"rend":3.31,"presup":3.535,"diff":-0.225,"plat":"Irizar"},{"mes":"Feb","unidad":8914,"seg":"DIAMANTE","kms":6652,"litros":1982.5,"rend":3.355,"presup":3.4,"diff":-0.045,"plat":"Irizar"},{"mes":"Feb","unidad":9567,"seg":"DIAMANTE","kms":1172,"litros":348.4,"rend":3.364,"presup":3.93,"diff":-0.566,"plat":"Irizar"},{"mes":"Feb","unidad":9553,"seg":"DIAMANTE","kms":572,"litros":169.8,"rend":3.369,"presup":3.535,"diff":-0.166,"plat":"Irizar"},{"mes":"Feb","unidad":8831,"seg":"DIAMANTE","kms":7264,"litros":2149.0,"rend":3.38,"presup":3.4,"diff":-0.02,"plat":"Irizar"},{"mes":"Feb","unidad":9534,"seg":"DIAMANTE","kms":572,"litros":168.0,"rend":3.405,"presup":3.708,"diff":-0.303,"plat":"Irizar"},{"mes":"Feb","unidad":8824,"seg":"DIAMANTE","kms":12062,"litros":3484.3,"rend":3.462,"presup":3.675,"diff":-0.213,"plat":"Irizar"},{"mes":"Feb","unidad":8208,"seg":"DIAMANTE","kms":11605,"litros":3336.8,"rend":3.478,"presup":4.259,"diff":-0.781,"plat":"Marcopolo"},{"mes":"Feb","unidad":9547,"seg":"DIAMANTE","kms":1144,"litros":327.6,"rend":3.492,"presup":3.535,"diff":-0.043,"plat":"Irizar"},{"mes":"Feb","unidad":8924,"seg":"DIAMANTE","kms":6711,"litros":1913.7,"rend":3.507,"presup":3.4,"diff":0.107,"plat":"Irizar"},{"mes":"Feb","unidad":9525,"seg":"DIAMANTE","kms":572,"litros":163.0,"rend":3.509,"presup":3.535,"diff":-0.026,"plat":"Irizar"},{"mes":"Feb","unidad":9570,"seg":"DIAMANTE","kms":9221,"litros":2577.3,"rend":3.578,"presup":3.93,"diff":-0.352,"plat":"Irizar"},{"mes":"Feb","unidad":9556,"seg":"DIAMANTE","kms":2002,"litros":559.3,"rend":3.579,"presup":3.708,"diff":-0.129,"plat":"Irizar"},{"mes":"Feb","unidad":9549,"seg":"DIAMANTE","kms":16584,"litros":4578.8,"rend":3.622,"presup":3.93,"diff":-0.308,"plat":"Irizar"},{"mes":"Feb","unidad":8225,"seg":"DIAMANTE","kms":14563,"litros":3941.4,"rend":3.695,"presup":4.259,"diff":-0.564,"plat":"Marcopolo"},{"mes":"Feb","unidad":9524,"seg":"DIAMANTE","kms":237,"litros":63.9,"rend":3.709,"presup":3.535,"diff":0.174,"plat":"Irizar"},{"mes":"Feb","unidad":9671,"seg":"DIAMANTE","kms":188,"litros":50.6,"rend":3.715,"presup":3.087,"diff":0.628,"plat":"MCI"},{"mes":"Feb","unidad":9554,"seg":"DIAMANTE","kms":8630,"litros":2307.3,"rend":3.74,"presup":3.93,"diff":-0.19,"plat":"Irizar"},{"mes":"Feb","unidad":8237,"seg":"DIAMANTE","kms":7466,"litros":1988.1,"rend":3.755,"presup":4.259,"diff":-0.504,"plat":"Marcopolo"},{"mes":"Feb","unidad":8204,"seg":"DIAMANTE","kms":17551,"litros":4645.4,"rend":3.778,"presup":4.259,"diff":-0.481,"plat":"Marcopolo"},{"mes":"Feb","unidad":8805,"seg":"DIAMANTE","kms":16478,"litros":4359.1,"rend":3.78,"presup":3.675,"diff":0.105,"plat":"Irizar"},{"mes":"Feb","unidad":9585,"seg":"DIAMANTE","kms":14040,"litros":3680.7,"rend":3.814,"presup":3.93,"diff":-0.116,"plat":"Irizar"},{"mes":"Feb","unidad":9533,"seg":"DIAMANTE","kms":15321,"litros":3978.5,"rend":3.851,"presup":3.93,"diff":-0.079,"plat":"Irizar"},{"mes":"Feb","unidad":9532,"seg":"DIAMANTE","kms":15656,"litros":4042.6,"rend":3.873,"presup":3.93,"diff":-0.057,"plat":"Irizar"},{"mes":"Feb","unidad":8229,"seg":"DIAMANTE","kms":16425,"litros":4206.9,"rend":3.904,"presup":4.259,"diff":-0.355,"plat":"Marcopolo"},{"mes":"Feb","unidad":8811,"seg":"DIAMANTE","kms":18332,"litros":4687.7,"rend":3.911,"presup":3.675,"diff":0.236,"plat":"Irizar"},{"mes":"Feb","unidad":9528,"seg":"DIAMANTE","kms":13007,"litros":3300.1,"rend":3.941,"presup":3.93,"diff":0.011,"plat":"Irizar"},{"mes":"Feb","unidad":9124,"seg":"DIAMANTE","kms":16456,"litros":4170.4,"rend":3.946,"presup":3.675,"diff":0.271,"plat":"Irizar"},{"mes":"Feb","unidad":8209,"seg":"DIAMANTE","kms":17761,"litros":4491.6,"rend":3.954,"presup":4.259,"diff":-0.305,"plat":"Marcopolo"},{"mes":"Feb","unidad":9522,"seg":"DIAMANTE","kms":7035,"litros":1777.3,"rend":3.958,"presup":3.93,"diff":0.028,"plat":"Irizar"},{"mes":"Feb","unidad":9569,"seg":"DIAMANTE","kms":531,"litros":132.9,"rend":3.995,"presup":3.93,"diff":0.065,"plat":"Irizar"},{"mes":"Feb","unidad":9123,"seg":"DIAMANTE","kms":10215,"litros":2553.4,"rend":4.001,"presup":4.095,"diff":-0.094,"plat":"Volvo"},{"mes":"Feb","unidad":8808,"seg":"DIAMANTE","kms":8908,"litros":2226.2,"rend":4.001,"presup":3.675,"diff":0.326,"plat":"Irizar"},{"mes":"Feb","unidad":8233,"seg":"DIAMANTE","kms":8323,"litros":2073.8,"rend":4.013,"presup":4.259,"diff":-0.246,"plat":"Marcopolo"},{"mes":"Feb","unidad":9591,"seg":"DIAMANTE","kms":1607,"litros":400.2,"rend":4.015,"presup":3.93,"diff":0.085,"plat":"Irizar"},{"mes":"Feb","unidad":9558,"seg":"DIAMANTE","kms":9960,"litros":2473.3,"rend":4.027,"presup":3.93,"diff":0.097,"plat":"Irizar"},{"mes":"Feb","unidad":8212,"seg":"DIAMANTE","kms":15828,"litros":3930.8,"rend":4.027,"presup":4.259,"diff":-0.232,"plat":"Marcopolo"},{"mes":"Feb","unidad":8207,"seg":"DIAMANTE","kms":15871,"litros":3938.9,"rend":4.029,"presup":4.259,"diff":-0.23,"plat":"Marcopolo"},{"mes":"Feb","unidad":8224,"seg":"DIAMANTE","kms":10821,"litros":2684.6,"rend":4.031,"presup":4.259,"diff":-0.228,"plat":"Marcopolo"},{"mes":"Feb","unidad":8232,"seg":"DIAMANTE","kms":18271,"litros":4523.6,"rend":4.039,"presup":4.259,"diff":-0.22,"plat":"Marcopolo"},{"mes":"Feb","unidad":8812,"seg":"DIAMANTE","kms":18829,"litros":4655.7,"rend":4.044,"presup":3.675,"diff":0.369,"plat":"Irizar"},{"mes":"Feb","unidad":8214,"seg":"DIAMANTE","kms":17354,"litros":4285.5,"rend":4.049,"presup":4.259,"diff":-0.21,"plat":"Marcopolo"},{"mes":"Feb","unidad":9555,"seg":"DIAMANTE","kms":10072,"litros":2483.2,"rend":4.056,"presup":3.93,"diff":0.126,"plat":"Irizar"},{"mes":"Feb","unidad":9586,"seg":"DIAMANTE","kms":13909,"litros":3428.6,"rend":4.057,"presup":3.93,"diff":0.127,"plat":"Irizar"},{"mes":"Feb","unidad":9550,"seg":"DIAMANTE","kms":16687,"litros":4095.0,"rend":4.075,"presup":3.93,"diff":0.145,"plat":"Irizar"},{"mes":"Feb","unidad":9572,"seg":"DIAMANTE","kms":18453,"litros":4522.5,"rend":4.08,"presup":3.93,"diff":0.15,"plat":"Irizar"},{"mes":"Feb","unidad":9589,"seg":"DIAMANTE","kms":14596,"litros":3572.8,"rend":4.085,"presup":3.93,"diff":0.155,"plat":"Irizar"},{"mes":"Feb","unidad":9557,"seg":"DIAMANTE","kms":10742,"litros":2624.6,"rend":4.093,"presup":3.93,"diff":0.163,"plat":"Irizar"},{"mes":"Feb","unidad":8236,"seg":"DIAMANTE","kms":17248,"litros":4212.1,"rend":4.095,"presup":4.259,"diff":-0.164,"plat":"Marcopolo"},{"mes":"Feb","unidad":8218,"seg":"DIAMANTE","kms":18205,"litros":4418.9,"rend":4.12,"presup":4.259,"diff":-0.139,"plat":"Marcopolo"},{"mes":"Feb","unidad":8226,"seg":"DIAMANTE","kms":16550,"litros":4011.3,"rend":4.126,"presup":4.259,"diff":-0.133,"plat":"Marcopolo"},{"mes":"Feb","unidad":8205,"seg":"DIAMANTE","kms":18138,"litros":4388.1,"rend":4.133,"presup":4.259,"diff":-0.126,"plat":"Marcopolo"},{"mes":"Feb","unidad":9559,"seg":"DIAMANTE","kms":11413,"litros":2758.6,"rend":4.137,"presup":3.93,"diff":0.207,"plat":"Irizar"},{"mes":"Feb","unidad":8804,"seg":"DIAMANTE","kms":19429,"litros":4682.5,"rend":4.149,"presup":3.675,"diff":0.474,"plat":"Irizar"},{"mes":"Feb","unidad":8803,"seg":"DIAMANTE","kms":14237,"litros":3429.9,"rend":4.151,"presup":3.675,"diff":0.476,"plat":"Irizar"},{"mes":"Feb","unidad":8202,"seg":"DIAMANTE","kms":14399,"litros":3467.6,"rend":4.152,"presup":4.259,"diff":-0.107,"plat":"Marcopolo"},{"mes":"Feb","unidad":9573,"seg":"DIAMANTE","kms":18037,"litros":4321.7,"rend":4.174,"presup":3.93,"diff":0.244,"plat":"Irizar"},{"mes":"Feb","unidad":9590,"seg":"DIAMANTE","kms":2457,"litros":588.6,"rend":4.174,"presup":3.708,"diff":0.466,"plat":"Irizar"},{"mes":"Feb","unidad":8217,"seg":"DIAMANTE","kms":19349,"litros":4634.1,"rend":4.175,"presup":4.259,"diff":-0.084,"plat":"Marcopolo"},{"mes":"Feb","unidad":8231,"seg":"DIAMANTE","kms":15105,"litros":3612.4,"rend":4.181,"presup":4.259,"diff":-0.078,"plat":"Marcopolo"},{"mes":"Feb","unidad":8219,"seg":"DIAMANTE","kms":12389,"litros":2949.3,"rend":4.201,"presup":4.259,"diff":-0.058,"plat":"Marcopolo"},{"mes":"Feb","unidad":9571,"seg":"DIAMANTE","kms":16163,"litros":3843.7,"rend":4.205,"presup":3.93,"diff":0.275,"plat":"Irizar"},{"mes":"Feb","unidad":8819,"seg":"DIAMANTE","kms":17099,"litros":4064.4,"rend":4.207,"presup":3.675,"diff":0.532,"plat":"Irizar"},{"mes":"Feb","unidad":9575,"seg":"DIAMANTE","kms":17506,"litros":4157.1,"rend":4.211,"presup":3.93,"diff":0.281,"plat":"Irizar"},{"mes":"Feb","unidad":9529,"seg":"DIAMANTE","kms":17332,"litros":4106.1,"rend":4.221,"presup":3.93,"diff":0.291,"plat":"Irizar"},{"mes":"Feb","unidad":8821,"seg":"DIAMANTE","kms":16796,"litros":3978.9,"rend":4.221,"presup":3.675,"diff":0.546,"plat":"Irizar"},{"mes":"Feb","unidad":9539,"seg":"DIAMANTE","kms":18828,"litros":4453.0,"rend":4.228,"presup":3.93,"diff":0.298,"plat":"Irizar"},{"mes":"Feb","unidad":9576,"seg":"DIAMANTE","kms":19135,"litros":4521.6,"rend":4.232,"presup":3.93,"diff":0.302,"plat":"Irizar"},{"mes":"Feb","unidad":8220,"seg":"DIAMANTE","kms":18002,"litros":4241.9,"rend":4.244,"presup":4.259,"diff":-0.015,"plat":"Marcopolo"},{"mes":"Feb","unidad":8809,"seg":"DIAMANTE","kms":20391,"litros":4790.7,"rend":4.256,"presup":3.675,"diff":0.581,"plat":"Irizar"},{"mes":"Feb","unidad":8201,"seg":"DIAMANTE","kms":19281,"litros":4528.2,"rend":4.258,"presup":4.259,"diff":-0.001,"plat":"Marcopolo"},{"mes":"Feb","unidad":8818,"seg":"DIAMANTE","kms":9366,"litros":2198.7,"rend":4.26,"presup":3.675,"diff":0.585,"plat":"Irizar"},{"mes":"Feb","unidad":8816,"seg":"DIAMANTE","kms":17335,"litros":4061.8,"rend":4.268,"presup":3.675,"diff":0.593,"plat":"Irizar"},{"mes":"Feb","unidad":8216,"seg":"DIAMANTE","kms":18441,"litros":4305.0,"rend":4.284,"presup":4.259,"diff":0.025,"plat":"Marcopolo"},{"mes":"Feb","unidad":8238,"seg":"DIAMANTE","kms":17953,"litros":4188.7,"rend":4.286,"presup":4.259,"diff":0.027,"plat":"Marcopolo"},{"mes":"Feb","unidad":9574,"seg":"DIAMANTE","kms":20004,"litros":4639.0,"rend":4.312,"presup":3.93,"diff":0.382,"plat":"Irizar"},{"mes":"Feb","unidad":9530,"seg":"DIAMANTE","kms":16085,"litros":3730.5,"rend":4.312,"presup":3.93,"diff":0.382,"plat":"Irizar"},{"mes":"Feb","unidad":8221,"seg":"DIAMANTE","kms":3543,"litros":820.4,"rend":4.319,"presup":4.259,"diff":0.06,"plat":"Marcopolo"},{"mes":"Feb","unidad":8211,"seg":"DIAMANTE","kms":17793,"litros":4112.8,"rend":4.326,"presup":4.259,"diff":0.067,"plat":"Marcopolo"},{"mes":"Feb","unidad":8213,"seg":"DIAMANTE","kms":17990,"litros":4157.2,"rend":4.327,"presup":4.259,"diff":0.068,"plat":"Marcopolo"},{"mes":"Feb","unidad":9583,"seg":"DIAMANTE","kms":18589,"litros":4288.8,"rend":4.334,"presup":3.93,"diff":0.404,"plat":"Irizar"},{"mes":"Feb","unidad":8810,"seg":"DIAMANTE","kms":5209,"litros":1201.5,"rend":4.335,"presup":3.675,"diff":0.66,"plat":"Irizar"},{"mes":"Feb","unidad":9588,"seg":"DIAMANTE","kms":18625,"litros":4291.1,"rend":4.34,"presup":3.93,"diff":0.41,"plat":"Irizar"},{"mes":"Feb","unidad":9563,"seg":"DIAMANTE","kms":10185,"litros":2345.2,"rend":4.343,"presup":3.93,"diff":0.413,"plat":"Irizar"},{"mes":"Feb","unidad":8222,"seg":"DIAMANTE","kms":14504,"litros":3340.2,"rend":4.342,"presup":4.259,"diff":0.083,"plat":"Marcopolo"},{"mes":"Feb","unidad":9562,"seg":"DIAMANTE","kms":6147,"litros":1414.8,"rend":4.345,"presup":3.93,"diff":0.415,"plat":"Irizar"},{"mes":"Feb","unidad":8801,"seg":"DIAMANTE","kms":19518,"litros":4478.0,"rend":4.359,"presup":3.675,"diff":0.684,"plat":"Irizar"},{"mes":"Feb","unidad":8227,"seg":"DIAMANTE","kms":15776,"litros":3600.7,"rend":4.381,"presup":4.259,"diff":0.122,"plat":"Marcopolo"},{"mes":"Feb","unidad":9587,"seg":"DIAMANTE","kms":5443,"litros":1239.0,"rend":4.393,"presup":3.93,"diff":0.463,"plat":"Irizar"},{"mes":"Feb","unidad":9544,"seg":"DIAMANTE","kms":10603,"litros":2409.5,"rend":4.4,"presup":3.93,"diff":0.47,"plat":"Irizar"},{"mes":"Feb","unidad":8834,"seg":"DIAMANTE","kms":10113,"litros":2293.5,"rend":4.409,"presup":3.921,"diff":0.488,"plat":"Irizar"},{"mes":"Feb","unidad":9580,"seg":"DIAMANTE","kms":17938,"litros":4049.9,"rend":4.429,"presup":3.93,"diff":0.499,"plat":"Irizar"},{"mes":"Feb","unidad":8235,"seg":"DIAMANTE","kms":16008,"litros":3608.1,"rend":4.437,"presup":4.259,"diff":0.178,"plat":"Marcopolo"},{"mes":"Feb","unidad":8240,"seg":"DIAMANTE","kms":17090,"litros":3846.0,"rend":4.444,"presup":4.259,"diff":0.185,"plat":"Marcopolo"},{"mes":"Feb","unidad":8813,"seg":"DIAMANTE","kms":19635,"litros":4412.5,"rend":4.45,"presup":3.675,"diff":0.775,"plat":"Irizar"},{"mes":"Feb","unidad":9537,"seg":"DIAMANTE","kms":16808,"litros":3776.7,"rend":4.45,"presup":3.93,"diff":0.52,"plat":"Irizar"},{"mes":"Feb","unidad":9584,"seg":"DIAMANTE","kms":15858,"litros":3559.0,"rend":4.456,"presup":3.93,"diff":0.526,"plat":"Irizar"},{"mes":"Feb","unidad":9542,"seg":"DIAMANTE","kms":15133,"litros":3379.4,"rend":4.478,"presup":3.93,"diff":0.548,"plat":"Irizar"},{"mes":"Feb","unidad":8210,"seg":"DIAMANTE","kms":20651,"litros":4595.9,"rend":4.493,"presup":4.259,"diff":0.234,"plat":"Marcopolo"},{"mes":"Feb","unidad":8802,"seg":"DIAMANTE","kms":11549,"litros":2570.5,"rend":4.493,"presup":3.675,"diff":0.818,"plat":"Irizar"},{"mes":"Feb","unidad":8215,"seg":"DIAMANTE","kms":20380,"litros":4526.5,"rend":4.502,"presup":4.259,"diff":0.243,"plat":"Marcopolo"},{"mes":"Feb","unidad":8234,"seg":"DIAMANTE","kms":17707,"litros":3930.7,"rend":4.505,"presup":4.259,"diff":0.246,"plat":"Marcopolo"},{"mes":"Feb","unidad":8833,"seg":"DIAMANTE","kms":8042,"litros":1783.8,"rend":4.508,"presup":3.921,"diff":0.587,"plat":"Irizar"},{"mes":"Feb","unidad":9582,"seg":"DIAMANTE","kms":14857,"litros":3295.3,"rend":4.509,"presup":3.93,"diff":0.579,"plat":"Irizar"},{"mes":"Feb","unidad":8822,"seg":"DIAMANTE","kms":13662,"litros":3030.4,"rend":4.508,"presup":3.675,"diff":0.833,"plat":"Irizar"},{"mes":"Feb","unidad":8806,"seg":"DIAMANTE","kms":14996,"litros":3316.3,"rend":4.522,"presup":3.675,"diff":0.847,"plat":"Irizar"},{"mes":"Feb","unidad":9578,"seg":"DIAMANTE","kms":14567,"litros":3200.9,"rend":4.551,"presup":3.93,"diff":0.621,"plat":"Irizar"},{"mes":"Feb","unidad":9564,"seg":"DIAMANTE","kms":3072,"litros":674.1,"rend":4.557,"presup":3.93,"diff":0.627,"plat":"Irizar"},{"mes":"Feb","unidad":8951,"seg":"DIAMANTE","kms":2015,"litros":440.3,"rend":4.576,"presup":3.4,"diff":1.176,"plat":"Irizar"},{"mes":"Feb","unidad":8206,"seg":"DIAMANTE","kms":19531,"litros":4259.3,"rend":4.585,"presup":4.259,"diff":0.326,"plat":"Marcopolo"},{"mes":"Feb","unidad":8807,"seg":"DIAMANTE","kms":17647,"litros":3845.5,"rend":4.589,"presup":3.675,"diff":0.914,"plat":"Irizar"},{"mes":"Feb","unidad":8203,"seg":"DIAMANTE","kms":10088,"litros":2188.1,"rend":4.61,"presup":4.259,"diff":0.351,"plat":"Marcopolo"},{"mes":"Feb","unidad":9545,"seg":"DIAMANTE","kms":16753,"litros":3610.8,"rend":4.64,"presup":3.93,"diff":0.71,"plat":"Irizar"},{"mes":"Feb","unidad":9568,"seg":"DIAMANTE","kms":3430,"litros":733.4,"rend":4.677,"presup":3.93,"diff":0.747,"plat":"Irizar"},{"mes":"Feb","unidad":8814,"seg":"DIAMANTE","kms":17007,"litros":3612.9,"rend":4.707,"presup":3.675,"diff":1.032,"plat":"Irizar"},{"mes":"Feb","unidad":9565,"seg":"DIAMANTE","kms":5504,"litros":1168.8,"rend":4.709,"presup":3.93,"diff":0.779,"plat":"Irizar"},{"mes":"Feb","unidad":9552,"seg":"DIAMANTE","kms":10449,"litros":2216.7,"rend":4.714,"presup":3.93,"diff":0.784,"plat":"Irizar"},{"mes":"Feb","unidad":8815,"seg":"DIAMANTE","kms":18851,"litros":3967.8,"rend":4.751,"presup":3.675,"diff":1.076,"plat":"Irizar"},{"mes":"Feb","unidad":8230,"seg":"DIAMANTE","kms":16815,"litros":3502.9,"rend":4.8,"presup":4.259,"diff":0.541,"plat":"Marcopolo"},{"mes":"Feb","unidad":9577,"seg":"DIAMANTE","kms":19409,"litros":4007.8,"rend":4.843,"presup":3.93,"diff":0.913,"plat":"Irizar"},{"mes":"Feb","unidad":9546,"seg":"DIAMANTE","kms":16862,"litros":3418.6,"rend":4.932,"presup":3.93,"diff":1.002,"plat":"Irizar"},{"mes":"Feb","unidad":9581,"seg":"DIAMANTE","kms":11536,"litros":2330.9,"rend":4.949,"presup":3.93,"diff":1.019,"plat":"Irizar"},{"mes":"Feb","unidad":9536,"seg":"DIAMANTE","kms":10275,"litros":2059.9,"rend":4.988,"presup":3.708,"diff":1.28,"plat":"Irizar"},{"mes":"Feb","unidad":8228,"seg":"DIAMANTE","kms":17427,"litros":3341.4,"rend":5.215,"presup":4.259,"diff":0.956,"plat":"Marcopolo"},{"mes":"Feb","unidad":9521,"seg":"DIAMANTE","kms":9565,"litros":1820.6,"rend":5.254,"presup":3.93,"diff":1.324,"plat":"Irizar"},{"mes":"Ene","unidad":87,"seg":"IMSS","kms":410,"litros":171.2,"rend":2.395,"presup":3.019,"diff":-0.624,"plat":"MCI"},{"mes":"Ene","unidad":84,"seg":"IMSS","kms":102,"litros":41.3,"rend":2.47,"presup":3.019,"diff":-0.549,"plat":"MCI"},{"mes":"Ene","unidad":9686,"seg":"IMSS","kms":3177,"litros":1255.3,"rend":2.531,"presup":3.915,"diff":-1.384,"plat":"MCI"},{"mes":"Ene","unidad":79,"seg":"IMSS","kms":6601,"litros":2440.4,"rend":2.705,"presup":3.915,"diff":-1.21,"plat":"MCI"},{"mes":"Ene","unidad":81,"seg":"IMSS","kms":820,"litros":292.0,"rend":2.808,"presup":3.019,"diff":-0.211,"plat":"MCI"},{"mes":"Ene","unidad":9536,"seg":"IMSS","kms":4858,"litros":1673.0,"rend":2.904,"presup":3.517,"diff":-0.613,"plat":"Irizar"},{"mes":"Ene","unidad":9556,"seg":"IMSS","kms":1968,"litros":676.8,"rend":2.908,"presup":3.517,"diff":-0.609,"plat":"Irizar"},{"mes":"Ene","unidad":9685,"seg":"IMSS","kms":1640,"litros":556.0,"rend":2.95,"presup":3.915,"diff":-0.965,"plat":"MCI"},{"mes":"Ene","unidad":8911,"seg":"IMSS","kms":694,"litros":218.8,"rend":3.172,"presup":3.921,"diff":-0.749,"plat":"Irizar"},{"mes":"Ene","unidad":9562,"seg":"IMSS","kms":4608,"litros":1245.6,"rend":3.699,"presup":3.895,"diff":-0.196,"plat":"Irizar"},{"mes":"Ene","unidad":9551,"seg":"IMSS","kms":3198,"litros":858.0,"rend":3.727,"presup":3.895,"diff":-0.168,"plat":"Irizar"},{"mes":"Ene","unidad":9590,"seg":"IMSS","kms":3378,"litros":906.5,"rend":3.726,"presup":3.517,"diff":0.209,"plat":"Irizar"},{"mes":"Ene","unidad":9566,"seg":"IMSS","kms":4164,"litros":1110.0,"rend":3.751,"presup":3.895,"diff":-0.144,"plat":"Irizar"},{"mes":"Ene","unidad":8833,"seg":"IMSS","kms":50,"litros":13.2,"rend":3.788,"presup":3.921,"diff":-0.133,"plat":"Irizar"},{"mes":"Ene","unidad":9591,"seg":"IMSS","kms":5850,"litros":1528.8,"rend":3.827,"presup":3.895,"diff":-0.068,"plat":"Irizar"},{"mes":"Ene","unidad":9568,"seg":"IMSS","kms":694,"litros":180.6,"rend":3.843,"presup":3.895,"diff":-0.052,"plat":"Irizar"},{"mes":"Ene","unidad":9534,"seg":"IMSS","kms":3947,"litros":1015.7,"rend":3.886,"presup":3.517,"diff":0.369,"plat":"Irizar"},{"mes":"Ene","unidad":9567,"seg":"IMSS","kms":3470,"litros":884.0,"rend":3.925,"presup":3.895,"diff":0.03,"plat":"Irizar"},{"mes":"Ene","unidad":9579,"seg":"IMSS","kms":22673,"litros":5592.4,"rend":4.054,"presup":3.517,"diff":0.537,"plat":"Irizar"},{"mes":"Ene","unidad":9571,"seg":"IMSS","kms":553,"litros":130.4,"rend":4.241,"presup":3.895,"diff":0.346,"plat":"Irizar"},{"mes":"Ene","unidad":9572,"seg":"IMSS","kms":1106,"litros":250.8,"rend":4.41,"presup":3.895,"diff":0.515,"plat":"Irizar"},{"mes":"Ene","unidad":9576,"seg":"IMSS","kms":2212,"litros":496.4,"rend":4.456,"presup":3.895,"diff":0.561,"plat":"Irizar"},{"mes":"Ene","unidad":9532,"seg":"IMSS","kms":50,"litros":11.1,"rend":4.505,"presup":3.895,"diff":0.61,"plat":"Irizar"},{"mes":"Ene","unidad":9588,"seg":"IMSS","kms":1106,"litros":240.8,"rend":4.593,"presup":3.895,"diff":0.698,"plat":"Irizar"},{"mes":"Ene","unidad":9544,"seg":"IMSS","kms":50,"litros":10.7,"rend":4.673,"presup":3.895,"diff":0.778,"plat":"Irizar"},{"mes":"Ene","unidad":9351,"seg":"IMSS","kms":512,"litros":74.4,"rend":6.882,"presup":3.089,"diff":3.793,"plat":"Multego"},{"mes":"Feb","unidad":87,"seg":"IMSS","kms":205,"litros":82.2,"rend":2.494,"presup":3.087,"diff":-0.593,"plat":"MCI"},{"mes":"Feb","unidad":81,"seg":"IMSS","kms":2460,"litros":928.8,"rend":2.649,"presup":3.087,"diff":-0.438,"plat":"MCI"},{"mes":"Feb","unidad":80,"seg":"IMSS","kms":307,"litros":115.0,"rend":2.67,"presup":3.087,"diff":-0.417,"plat":"MCI"},{"mes":"Feb","unidad":77,"seg":"IMSS","kms":1538,"litros":535.7,"rend":2.871,"presup":3.087,"diff":-0.216,"plat":"MCI"},{"mes":"Feb","unidad":79,"seg":"IMSS","kms":4298,"litros":1475.6,"rend":2.913,"presup":2.764,"diff":0.149,"plat":"MCI"},{"mes":"Feb","unidad":8911,"seg":"IMSS","kms":50,"litros":16.8,"rend":2.976,"presup":3.4,"diff":-0.424,"plat":"Irizar"},{"mes":"Feb","unidad":9551,"seg":"IMSS","kms":3444,"litros":1122.8,"rend":3.067,"presup":3.93,"diff":-0.863,"plat":"Irizar"},{"mes":"Feb","unidad":9567,"seg":"IMSS","kms":9022,"litros":2683.2,"rend":3.362,"presup":3.93,"diff":-0.568,"plat":"Irizar"},{"mes":"Feb","unidad":8208,"seg":"IMSS","kms":50,"litros":14.4,"rend":3.472,"presup":4.259,"diff":-0.787,"plat":"Marcopolo"},{"mes":"Feb","unidad":9671,"seg":"IMSS","kms":103,"litros":27.7,"rend":3.718,"presup":3.087,"diff":0.631,"plat":"MCI"},{"mes":"Feb","unidad":9533,"seg":"IMSS","kms":100,"litros":26.0,"rend":3.846,"presup":3.93,"diff":-0.084,"plat":"Irizar"},{"mes":"Feb","unidad":9528,"seg":"IMSS","kms":50,"litros":12.7,"rend":3.937,"presup":3.93,"diff":0.007,"plat":"Irizar"},{"mes":"Feb","unidad":9591,"seg":"IMSS","kms":6300,"litros":1568.0,"rend":4.018,"presup":3.93,"diff":0.088,"plat":"Irizar"},{"mes":"Feb","unidad":9586,"seg":"IMSS","kms":2815,"litros":693.8,"rend":4.057,"presup":3.93,"diff":0.127,"plat":"Irizar"},{"mes":"Feb","unidad":9590,"seg":"IMSS","kms":3840,"litros":919.5,"rend":4.176,"presup":3.708,"diff":0.468,"plat":"Irizar"},{"mes":"Feb","unidad":9529,"seg":"IMSS","kms":50,"litros":11.8,"rend":4.237,"presup":3.93,"diff":0.307,"plat":"Irizar"},{"mes":"Feb","unidad":8833,"seg":"IMSS","kms":100,"litros":22.2,"rend":4.505,"presup":3.921,"diff":0.584,"plat":"Irizar"},{"mes":"Feb","unidad":9564,"seg":"IMSS","kms":3286,"litros":720.7,"rend":4.559,"presup":3.93,"diff":0.629,"plat":"Irizar"},{"mes":"Feb","unidad":8951,"seg":"IMSS","kms":12166,"litros":2657.6,"rend":4.578,"presup":3.4,"diff":1.178,"plat":"Irizar"},{"mes":"Feb","unidad":9546,"seg":"IMSS","kms":50,"litros":10.1,"rend":4.95,"presup":3.93,"diff":1.02,"plat":"Irizar"},{"mes":"Ene","unidad":87,"seg":"ORDINARIO","kms":131,"litros":54.7,"rend":2.395,"presup":3.019,"diff":-0.624,"plat":"MCI"},{"mes":"Ene","unidad":80,"seg":"ORDINARIO","kms":131,"litros":48.6,"rend":2.695,"presup":3.019,"diff":-0.324,"plat":"MCI"},{"mes":"Ene","unidad":9871,"seg":"ORDINARIO","kms":1008,"litros":370.4,"rend":2.721,"presup":3.019,"diff":-0.298,"plat":"MCI"},{"mes":"Ene","unidad":9832,"seg":"ORDINARIO","kms":410,"litros":145.1,"rend":2.826,"presup":3.578,"diff":-0.752,"plat":"Irizar"},{"mes":"Ene","unidad":9556,"seg":"ORDINARIO","kms":4585,"litros":1578.5,"rend":2.905,"presup":3.517,"diff":-0.612,"plat":"Irizar"},{"mes":"Ene","unidad":9527,"seg":"ORDINARIO","kms":9568,"litros":3227.8,"rend":2.964,"presup":3.649,"diff":-0.685,"plat":"Irizar"},{"mes":"Ene","unidad":9540,"seg":"ORDINARIO","kms":12053,"litros":4051.8,"rend":2.975,"presup":3.649,"diff":-0.674,"plat":"Irizar"},{"mes":"Ene","unidad":9873,"seg":"ORDINARIO","kms":393,"litros":130.8,"rend":3.005,"presup":3.019,"diff":-0.014,"plat":"MCI"},{"mes":"Ene","unidad":9606,"seg":"ORDINARIO","kms":2013,"litros":661.0,"rend":3.045,"presup":3.119,"diff":-0.074,"plat":"Irizar"},{"mes":"Ene","unidad":9523,"seg":"ORDINARIO","kms":16927,"litros":5541.0,"rend":3.055,"presup":3.649,"diff":-0.594,"plat":"Irizar"},{"mes":"Ene","unidad":9616,"seg":"ORDINARIO","kms":15316,"litros":4972.0,"rend":3.08,"presup":3.649,"diff":-0.569,"plat":"Irizar"},{"mes":"Ene","unidad":9366,"seg":"ORDINARIO","kms":4978,"litros":1615.0,"rend":3.082,"presup":3.089,"diff":-0.007,"plat":"Multego"},{"mes":"Ene","unidad":9560,"seg":"ORDINARIO","kms":10453,"litros":3311.9,"rend":3.156,"presup":3.649,"diff":-0.493,"plat":"Irizar"},{"mes":"Ene","unidad":8911,"seg":"ORDINARIO","kms":262,"litros":82.6,"rend":3.172,"presup":3.921,"diff":-0.749,"plat":"Irizar"},{"mes":"Ene","unidad":9569,"seg":"ORDINARIO","kms":504,"litros":155.3,"rend":3.245,"presup":3.895,"diff":-0.65,"plat":"Irizar"},{"mes":"Ene","unidad":9352,"seg":"ORDINARIO","kms":12722,"litros":3919.5,"rend":3.246,"presup":3.089,"diff":0.157,"plat":"Multego"},{"mes":"Ene","unidad":9531,"seg":"ORDINARIO","kms":5512,"litros":1696.0,"rend":3.25,"presup":3.649,"diff":-0.399,"plat":"Irizar"},{"mes":"Ene","unidad":9121,"seg":"ORDINARIO","kms":12108,"litros":3723.6,"rend":3.252,"presup":4.229,"diff":-0.977,"plat":"Irizar"},{"mes":"Ene","unidad":9877,"seg":"ORDINARIO","kms":5086,"litros":1552.0,"rend":3.277,"presup":3.019,"diff":0.258,"plat":"MCI"},{"mes":"Ene","unidad":9535,"seg":"ORDINARIO","kms":11720,"litros":3583.0,"rend":3.271,"presup":3.649,"diff":-0.378,"plat":"Irizar"},{"mes":"Ene","unidad":9618,"seg":"ORDINARIO","kms":9876,"litros":2971.3,"rend":3.324,"presup":3.649,"diff":-0.325,"plat":"Irizar"},{"mes":"Ene","unidad":9359,"seg":"ORDINARIO","kms":5556,"litros":1653.2,"rend":3.361,"presup":3.089,"diff":0.272,"plat":"Multego"},{"mes":"Ene","unidad":9360,"seg":"ORDINARIO","kms":6574,"litros":1952.2,"rend":3.367,"presup":3.089,"diff":0.278,"plat":"Multego"},{"mes":"Ene","unidad":9358,"seg":"ORDINARIO","kms":2013,"litros":596.0,"rend":3.378,"presup":3.089,"diff":0.289,"plat":"Multego"},{"mes":"Ene","unidad":9353,"seg":"ORDINARIO","kms":6050,"litros":1778.0,"rend":3.403,"presup":3.089,"diff":0.314,"plat":"Multego"},{"mes":"Ene","unidad":60,"seg":"ORDINARIO","kms":1008,"litros":296.0,"rend":3.405,"presup":3.467,"diff":-0.062,"plat":"MCI"},{"mes":"Ene","unidad":9361,"seg":"ORDINARIO","kms":6991,"litros":2038.8,"rend":3.429,"presup":3.089,"diff":0.34,"plat":"Multego"},{"mes":"Ene","unidad":9525,"seg":"ORDINARIO","kms":9734,"litros":2832.4,"rend":3.437,"presup":3.649,"diff":-0.212,"plat":"Irizar"},{"mes":"Ene","unidad":8157,"seg":"ORDINARIO","kms":655,"litros":190.0,"rend":3.447,"presup":3.119,"diff":0.328,"plat":"Irizar"},{"mes":"Ene","unidad":8906,"seg":"ORDINARIO","kms":550,"litros":157.3,"rend":3.497,"presup":3.921,"diff":-0.424,"plat":"Irizar"},{"mes":"Ene","unidad":9553,"seg":"ORDINARIO","kms":11351,"litros":3224.4,"rend":3.52,"presup":3.649,"diff":-0.129,"plat":"Irizar"},{"mes":"Ene","unidad":9543,"seg":"ORDINARIO","kms":5804,"litros":1623.2,"rend":3.576,"presup":3.649,"diff":-0.073,"plat":"Irizar"},{"mes":"Ene","unidad":55,"seg":"ORDINARIO","kms":2016,"litros":561.6,"rend":3.59,"presup":3.467,"diff":0.123,"plat":"MCI"},{"mes":"Ene","unidad":9617,"seg":"ORDINARIO","kms":12879,"litros":3569.0,"rend":3.609,"presup":3.649,"diff":-0.04,"plat":"Irizar"},{"mes":"Ene","unidad":9542,"seg":"ORDINARIO","kms":272,"litros":72.8,"rend":3.736,"presup":3.895,"diff":-0.159,"plat":"Irizar"},{"mes":"Ene","unidad":9566,"seg":"ORDINARIO","kms":5152,"litros":1374.4,"rend":3.749,"presup":3.895,"diff":-0.146,"plat":"Irizar"},{"mes":"Ene","unidad":9825,"seg":"ORDINARIO","kms":4740,"litros":1255.6,"rend":3.775,"presup":3.578,"diff":0.197,"plat":"Irizar"},{"mes":"Ene","unidad":9591,"seg":"ORDINARIO","kms":384,"litros":100.4,"rend":3.825,"presup":3.895,"diff":-0.07,"plat":"Irizar"},{"mes":"Ene","unidad":9534,"seg":"ORDINARIO","kms":3144,"litros":808.8,"rend":3.887,"presup":3.517,"diff":0.37,"plat":"Irizar"},{"mes":"Ene","unidad":9539,"seg":"ORDINARIO","kms":384,"litros":96.2,"rend":3.992,"presup":3.895,"diff":0.097,"plat":"Irizar"},{"mes":"Ene","unidad":9549,"seg":"ORDINARIO","kms":384,"litros":95.4,"rend":4.025,"presup":3.895,"diff":0.13,"plat":"Irizar"},{"mes":"Ene","unidad":9547,"seg":"ORDINARIO","kms":15227,"litros":3710.8,"rend":4.103,"presup":3.649,"diff":0.454,"plat":"Irizar"},{"mes":"Ene","unidad":9803,"seg":"ORDINARIO","kms":2751,"litros":659.4,"rend":4.172,"presup":3.578,"diff":0.594,"plat":"Irizar"},{"mes":"Ene","unidad":9834,"seg":"ORDINARIO","kms":3013,"litros":710.7,"rend":4.239,"presup":3.578,"diff":0.661,"plat":"Irizar"},{"mes":"Ene","unidad":9122,"seg":"ORDINARIO","kms":544,"litros":126.8,"rend":4.29,"presup":3.424,"diff":0.866,"plat":"Multego"},{"mes":"Ene","unidad":9529,"seg":"ORDINARIO","kms":656,"litros":146.2,"rend":4.487,"presup":3.895,"diff":0.592,"plat":"Irizar"},{"mes":"Ene","unidad":9532,"seg":"ORDINARIO","kms":384,"litros":85.4,"rend":4.496,"presup":3.895,"diff":0.601,"plat":"Irizar"},{"mes":"Ene","unidad":90,"seg":"ORDINARIO","kms":1008,"litros":222.6,"rend":4.528,"presup":3.019,"diff":1.509,"plat":"MCI"},{"mes":"Ene","unidad":9544,"seg":"ORDINARIO","kms":504,"litros":108.2,"rend":4.658,"presup":3.895,"diff":0.763,"plat":"Irizar"},{"mes":"Ene","unidad":9433,"seg":"ORDINARIO","kms":2096,"litros":427.2,"rend":4.906,"presup":3.119,"diff":1.787,"plat":"Irizar"},{"mes":"Ene","unidad":9349,"seg":"ORDINARIO","kms":1160,"litros":232.8,"rend":4.983,"presup":3.089,"diff":1.894,"plat":"Multego"},{"mes":"Ene","unidad":9690,"seg":"ORDINARIO","kms":3528,"litros":697.2,"rend":5.06,"presup":3.019,"diff":2.041,"plat":"MCI"},{"mes":"Ene","unidad":9524,"seg":"ORDINARIO","kms":10974,"litros":2075.0,"rend":5.289,"presup":3.649,"diff":1.64,"plat":"Irizar"},{"mes":"Ene","unidad":9833,"seg":"ORDINARIO","kms":3299,"litros":614.4,"rend":5.369,"presup":3.578,"diff":1.791,"plat":"Irizar"},{"mes":"Ene","unidad":9363,"seg":"ORDINARIO","kms":131,"litros":13.4,"rend":9.776,"presup":3.089,"diff":6.687,"plat":"Multego"},{"mes":"Ene","unidad":8127,"seg":"ORDINARIO","kms":262,"litros":22.2,"rend":11.802,"presup":3.119,"diff":8.683,"plat":"Irizar"},{"mes":"Feb","unidad":91,"seg":"ORDINARIO","kms":393,"litros":210.3,"rend":1.869,"presup":3.087,"diff":-1.218,"plat":"MCI"},{"mes":"Feb","unidad":84,"seg":"ORDINARIO","kms":524,"litros":233.2,"rend":2.247,"presup":3.087,"diff":-0.84,"plat":"MCI"},{"mes":"Feb","unidad":9673,"seg":"ORDINARIO","kms":1008,"litros":424.2,"rend":2.376,"presup":3.087,"diff":-0.711,"plat":"MCI"},{"mes":"Feb","unidad":87,"seg":"ORDINARIO","kms":2489,"litros":997.5,"rend":2.495,"presup":3.087,"diff":-0.592,"plat":"MCI"},{"mes":"Feb","unidad":80,"seg":"ORDINARIO","kms":786,"litros":294.6,"rend":2.668,"presup":3.087,"diff":-0.419,"plat":"MCI"},{"mes":"Feb","unidad":9873,"seg":"ORDINARIO","kms":131,"litros":49.1,"rend":2.668,"presup":3.087,"diff":-0.419,"plat":"MCI"},{"mes":"Feb","unidad":9877,"seg":"ORDINARIO","kms":1008,"litros":370.4,"rend":2.721,"presup":3.087,"diff":-0.366,"plat":"MCI"},{"mes":"Feb","unidad":77,"seg":"ORDINARIO","kms":1008,"litros":351.0,"rend":2.872,"presup":3.087,"diff":-0.215,"plat":"MCI"},{"mes":"Feb","unidad":9560,"seg":"ORDINARIO","kms":10808,"litros":3483.6,"rend":3.103,"presup":3.535,"diff":-0.432,"plat":"Irizar"},{"mes":"Feb","unidad":9616,"seg":"ORDINARIO","kms":9203,"litros":2942.3,"rend":3.128,"presup":3.535,"diff":-0.407,"plat":"Irizar"},{"mes":"Feb","unidad":9531,"seg":"ORDINARIO","kms":7336,"litros":2301.6,"rend":3.187,"presup":3.535,"diff":-0.348,"plat":"Irizar"},{"mes":"Feb","unidad":9617,"seg":"ORDINARIO","kms":7432,"litros":2325.6,"rend":3.196,"presup":3.535,"diff":-0.339,"plat":"Irizar"},{"mes":"Feb","unidad":9121,"seg":"ORDINARIO","kms":9672,"litros":2961.8,"rend":3.266,"presup":3.963,"diff":-0.697,"plat":"Irizar"},{"mes":"Feb","unidad":9871,"seg":"ORDINARIO","kms":1048,"litros":318.4,"rend":3.291,"presup":3.087,"diff":0.204,"plat":"MCI"},{"mes":"Feb","unidad":9535,"seg":"ORDINARIO","kms":8929,"litros":2708.2,"rend":3.297,"presup":3.535,"diff":-0.238,"plat":"Irizar"},{"mes":"Feb","unidad":9543,"seg":"ORDINARIO","kms":6943,"litros":2098.8,"rend":3.308,"presup":3.535,"diff":-0.227,"plat":"Irizar"},{"mes":"Feb","unidad":9553,"seg":"ORDINARIO","kms":8269,"litros":2455.3,"rend":3.368,"presup":3.535,"diff":-0.167,"plat":"Irizar"},{"mes":"Feb","unidad":9534,"seg":"ORDINARIO","kms":7090,"litros":2083.6,"rend":3.403,"presup":3.708,"diff":-0.305,"plat":"Irizar"},{"mes":"Feb","unidad":9523,"seg":"ORDINARIO","kms":7103,"litros":2065.5,"rend":3.439,"presup":3.535,"diff":-0.096,"plat":"Irizar"},{"mes":"Feb","unidad":9527,"seg":"ORDINARIO","kms":11750,"litros":3401.5,"rend":3.454,"presup":3.535,"diff":-0.081,"plat":"Irizar"},{"mes":"Feb","unidad":9547,"seg":"ORDINARIO","kms":7908,"litros":2263.8,"rend":3.493,"presup":3.535,"diff":-0.042,"plat":"Irizar"},{"mes":"Feb","unidad":9525,"seg":"ORDINARIO","kms":9505,"litros":2707.1,"rend":3.511,"presup":3.535,"diff":-0.024,"plat":"Irizar"},{"mes":"Feb","unidad":9556,"seg":"ORDINARIO","kms":6812,"litros":1903.2,"rend":3.579,"presup":3.708,"diff":-0.129,"plat":"Irizar"},{"mes":"Feb","unidad":9540,"seg":"ORDINARIO","kms":13985,"litros":3823.5,"rend":3.658,"presup":3.535,"diff":0.123,"plat":"Irizar"},{"mes":"Feb","unidad":9524,"seg":"ORDINARIO","kms":7257,"litros":1956.6,"rend":3.709,"presup":3.535,"diff":0.174,"plat":"Irizar"},{"mes":"Feb","unidad":9671,"seg":"ORDINARIO","kms":2520,"litros":678.5,"rend":3.714,"presup":3.087,"diff":0.627,"plat":"MCI"},{"mes":"Feb","unidad":9618,"seg":"ORDINARIO","kms":2620,"litros":686.0,"rend":3.819,"presup":3.535,"diff":0.284,"plat":"Irizar"},{"mes":"Feb","unidad":9532,"seg":"ORDINARIO","kms":1512,"litros":390.6,"rend":3.871,"presup":3.93,"diff":-0.059,"plat":"Irizar"},{"mes":"Feb","unidad":9566,"seg":"ORDINARIO","kms":10948,"litros":2815.2,"rend":3.889,"presup":3.93,"diff":-0.041,"plat":"Irizar"},{"mes":"Feb","unidad":9569,"seg":"ORDINARIO","kms":1512,"litros":378.6,"rend":3.994,"presup":3.93,"diff":0.064,"plat":"Irizar"},{"mes":"Feb","unidad":8231,"seg":"ORDINARIO","kms":1008,"litros":241.0,"rend":4.183,"presup":4.259,"diff":-0.076,"plat":"Marcopolo"},{"mes":"Feb","unidad":8222,"seg":"ORDINARIO","kms":504,"litros":116.1,"rend":4.341,"presup":4.259,"diff":0.082,"plat":"Marcopolo"},{"mes":"Feb","unidad":9568,"seg":"ORDINARIO","kms":6422,"litros":1372.8,"rend":4.678,"presup":3.93,"diff":0.748,"plat":"Irizar"},{"mes":"Ene","unidad":9607,"seg":"OTROS","kms":1126,"litros":664.1,"rend":1.696,"presup":3.119,"diff":-1.423,"plat":"Irizar"},{"mes":"Ene","unidad":87,"seg":"OTROS","kms":131,"litros":54.7,"rend":2.395,"presup":3.019,"diff":-0.624,"plat":"MCI"},{"mes":"Ene","unidad":9673,"seg":"OTROS","kms":111,"litros":45.9,"rend":2.418,"presup":3.019,"diff":-0.601,"plat":"MCI"},{"mes":"Ene","unidad":84,"seg":"OTROS","kms":199,"litros":80.6,"rend":2.469,"presup":3.019,"diff":-0.55,"plat":"MCI"},{"mes":"Ene","unidad":9686,"seg":"OTROS","kms":112,"litros":44.2,"rend":2.534,"presup":3.915,"diff":-1.381,"plat":"MCI"},{"mes":"Ene","unidad":9874,"seg":"OTROS","kms":232,"litros":88.7,"rend":2.616,"presup":3.019,"diff":-0.403,"plat":"MCI"},{"mes":"Ene","unidad":62,"seg":"OTROS","kms":286,"litros":108.1,"rend":2.646,"presup":3.467,"diff":-0.821,"plat":"MCI"},{"mes":"Ene","unidad":9681,"seg":"OTROS","kms":286,"litros":107.0,"rend":2.673,"presup":3.019,"diff":-0.346,"plat":"MCI"},{"mes":"Ene","unidad":80,"seg":"OTROS","kms":892,"litros":330.7,"rend":2.697,"presup":3.019,"diff":-0.322,"plat":"MCI"},{"mes":"Ene","unidad":9871,"seg":"OTROS","kms":178,"litros":65.4,"rend":2.722,"presup":3.019,"diff":-0.297,"plat":"MCI"},{"mes":"Ene","unidad":58,"seg":"OTROS","kms":286,"litros":104.7,"rend":2.732,"presup":3.467,"diff":-0.735,"plat":"MCI"},{"mes":"Ene","unidad":9672,"seg":"OTROS","kms":214,"litros":77.1,"rend":2.776,"presup":3.019,"diff":-0.243,"plat":"MCI"},{"mes":"Ene","unidad":9832,"seg":"OTROS","kms":1100,"litros":389.3,"rend":2.826,"presup":3.578,"diff":-0.752,"plat":"Irizar"},{"mes":"Ene","unidad":8832,"seg":"OTROS","kms":185,"litros":64.5,"rend":2.868,"presup":3.921,"diff":-1.053,"plat":"Irizar"},{"mes":"Ene","unidad":8901,"seg":"OTROS","kms":37,"litros":12.8,"rend":2.891,"presup":3.921,"diff":-1.03,"plat":"Irizar"},{"mes":"Ene","unidad":9674,"seg":"OTROS","kms":783,"litros":270.8,"rend":2.891,"presup":3.019,"diff":-0.128,"plat":"MCI"},{"mes":"Ene","unidad":9536,"seg":"OTROS","kms":1101,"litros":379.3,"rend":2.903,"presup":3.517,"diff":-0.614,"plat":"Irizar"},{"mes":"Ene","unidad":9556,"seg":"OTROS","kms":131,"litros":45.1,"rend":2.905,"presup":3.517,"diff":-0.612,"plat":"Irizar"},{"mes":"Ene","unidad":9685,"seg":"OTROS","kms":160,"litros":54.2,"rend":2.952,"presup":3.915,"diff":-0.963,"plat":"MCI"},{"mes":"Ene","unidad":9527,"seg":"OTROS","kms":131,"litros":44.2,"rend":2.964,"presup":3.649,"diff":-0.685,"plat":"Irizar"},{"mes":"Ene","unidad":8918,"seg":"OTROS","kms":111,"litros":37.2,"rend":2.984,"presup":3.921,"diff":-0.937,"plat":"Irizar"},{"mes":"Ene","unidad":9606,"seg":"OTROS","kms":3627,"litros":1191.6,"rend":3.044,"presup":3.119,"diff":-0.075,"plat":"Irizar"},{"mes":"Ene","unidad":8825,"seg":"OTROS","kms":148,"litros":48.4,"rend":3.058,"presup":3.921,"diff":-0.863,"plat":"Irizar"},{"mes":"Ene","unidad":9523,"seg":"OTROS","kms":262,"litros":85.8,"rend":3.054,"presup":3.649,"diff":-0.595,"plat":"Irizar"},{"mes":"Ene","unidad":9366,"seg":"OTROS","kms":682,"litros":221.3,"rend":3.082,"presup":3.089,"diff":-0.007,"plat":"Multego"},{"mes":"Ene","unidad":9616,"seg":"OTROS","kms":131,"litros":42.5,"rend":3.082,"presup":3.649,"diff":-0.567,"plat":"Irizar"},{"mes":"Ene","unidad":8905,"seg":"OTROS","kms":37,"litros":11.9,"rend":3.109,"presup":3.921,"diff":-0.812,"plat":"Irizar"},{"mes":"Ene","unidad":8923,"seg":"OTROS","kms":148,"litros":47.1,"rend":3.142,"presup":3.921,"diff":-0.779,"plat":"Irizar"},{"mes":"Ene","unidad":8911,"seg":"OTROS","kms":1155,"litros":364.2,"rend":3.171,"presup":3.921,"diff":-0.75,"plat":"Irizar"},{"mes":"Ene","unidad":8917,"seg":"OTROS","kms":111,"litros":34.8,"rend":3.19,"presup":3.921,"diff":-0.731,"plat":"Irizar"},{"mes":"Ene","unidad":8827,"seg":"OTROS","kms":74,"litros":23.2,"rend":3.19,"presup":3.921,"diff":-0.731,"plat":"Irizar"},{"mes":"Ene","unidad":8912,"seg":"OTROS","kms":37,"litros":11.5,"rend":3.217,"presup":3.921,"diff":-0.704,"plat":"Irizar"},{"mes":"Ene","unidad":8922,"seg":"OTROS","kms":95,"litros":29.5,"rend":3.22,"presup":3.921,"diff":-0.701,"plat":"Irizar"},{"mes":"Ene","unidad":9569,"seg":"OTROS","kms":46,"litros":14.2,"rend":3.239,"presup":3.895,"diff":-0.656,"plat":"Irizar"},{"mes":"Ene","unidad":9531,"seg":"OTROS","kms":1998,"litros":615.0,"rend":3.249,"presup":3.649,"diff":-0.4,"plat":"Irizar"},{"mes":"Ene","unidad":9352,"seg":"OTROS","kms":8,"litros":2.5,"rend":3.2,"presup":3.089,"diff":0.111,"plat":"Multego"},{"mes":"Ene","unidad":9121,"seg":"OTROS","kms":765,"litros":235.2,"rend":3.253,"presup":4.229,"diff":-0.976,"plat":"Irizar"},{"mes":"Ene","unidad":88,"seg":"OTROS","kms":184,"litros":56.3,"rend":3.268,"presup":3.019,"diff":0.249,"plat":"MCI"},{"mes":"Ene","unidad":9877,"seg":"OTROS","kms":46,"litros":14.0,"rend":3.286,"presup":3.019,"diff":0.267,"plat":"MCI"},{"mes":"Ene","unidad":8831,"seg":"OTROS","kms":37,"litros":11.2,"rend":3.304,"presup":3.921,"diff":-0.617,"plat":"Irizar"},{"mes":"Ene","unidad":9123,"seg":"OTROS","kms":111,"litros":33.6,"rend":3.304,"presup":3.942,"diff":-0.638,"plat":"Volvo"},{"mes":"Ene","unidad":8924,"seg":"OTROS","kms":314,"litros":94.7,"rend":3.316,"presup":3.921,"diff":-0.605,"plat":"Irizar"},{"mes":"Ene","unidad":9618,"seg":"OTROS","kms":373,"litros":112.2,"rend":3.324,"presup":3.649,"diff":-0.325,"plat":"Irizar"},{"mes":"Ene","unidad":8829,"seg":"OTROS","kms":111,"litros":33.3,"rend":3.333,"presup":3.921,"diff":-0.588,"plat":"Irizar"},{"mes":"Ene","unidad":9359,"seg":"OTROS","kms":1082,"litros":322.0,"rend":3.36,"presup":3.089,"diff":0.271,"plat":"Multego"},{"mes":"Ene","unidad":9360,"seg":"OTROS","kms":131,"litros":38.9,"rend":3.368,"presup":3.089,"diff":0.279,"plat":"Multego"},{"mes":"Ene","unidad":9358,"seg":"OTROS","kms":262,"litros":77.6,"rend":3.376,"presup":3.089,"diff":0.287,"plat":"Multego"},{"mes":"Ene","unidad":9353,"seg":"OTROS","kms":524,"litros":154.0,"rend":3.403,"presup":3.089,"diff":0.314,"plat":"Multego"},{"mes":"Ene","unidad":60,"seg":"OTROS","kms":131,"litros":38.5,"rend":3.403,"presup":3.467,"diff":-0.064,"plat":"MCI"},{"mes":"Ene","unidad":9361,"seg":"OTROS","kms":917,"litros":267.4,"rend":3.429,"presup":3.089,"diff":0.34,"plat":"Multego"},{"mes":"Ene","unidad":9525,"seg":"OTROS","kms":286,"litros":83.2,"rend":3.438,"presup":3.649,"diff":-0.211,"plat":"Irizar"},{"mes":"Ene","unidad":8157,"seg":"OTROS","kms":4464,"litros":1296.6,"rend":3.443,"presup":3.119,"diff":0.324,"plat":"Irizar"},{"mes":"Ene","unidad":8906,"seg":"OTROS","kms":95,"litros":27.2,"rend":3.493,"presup":3.921,"diff":-0.428,"plat":"Irizar"},{"mes":"Ene","unidad":9553,"seg":"OTROS","kms":393,"litros":111.6,"rend":3.522,"presup":3.649,"diff":-0.127,"plat":"Irizar"},{"mes":"Ene","unidad":83,"seg":"OTROS","kms":131,"litros":37.1,"rend":3.531,"presup":3.019,"diff":0.512,"plat":"MCI"},{"mes":"Ene","unidad":8904,"seg":"OTROS","kms":234,"litros":65.9,"rend":3.551,"presup":3.921,"diff":-0.37,"plat":"Irizar"},{"mes":"Ene","unidad":8915,"seg":"OTROS","kms":296,"litros":83.2,"rend":3.558,"presup":3.921,"diff":-0.363,"plat":"Irizar"},{"mes":"Ene","unidad":9878,"seg":"OTROS","kms":869,"litros":244.5,"rend":3.554,"presup":3.019,"diff":0.535,"plat":"MCI"},{"mes":"Ene","unidad":8914,"seg":"OTROS","kms":370,"litros":103.7,"rend":3.568,"presup":3.921,"diff":-0.353,"plat":"Irizar"},{"mes":"Ene","unidad":9543,"seg":"OTROS","kms":1162,"litros":324.8,"rend":3.578,"presup":3.649,"diff":-0.071,"plat":"Irizar"},{"mes":"Ene","unidad":8834,"seg":"OTROS","kms":37,"litros":10.3,"rend":3.592,"presup":3.921,"diff":-0.329,"plat":"Irizar"},{"mes":"Ene","unidad":55,"seg":"OTROS","kms":363,"litros":101.1,"rend":3.591,"presup":3.467,"diff":0.124,"plat":"MCI"},{"mes":"Ene","unidad":9617,"seg":"OTROS","kms":655,"litros":181.5,"rend":3.609,"presup":3.649,"diff":-0.04,"plat":"Irizar"},{"mes":"Ene","unidad":8823,"seg":"OTROS","kms":855,"litros":234.8,"rend":3.641,"presup":3.921,"diff":-0.28,"plat":"Irizar"},{"mes":"Ene","unidad":65,"seg":"OTROS","kms":262,"litros":71.4,"rend":3.669,"presup":3.467,"diff":0.202,"plat":"MCI"},{"mes":"Ene","unidad":9676,"seg":"OTROS","kms":417,"litros":113.1,"rend":3.687,"presup":3.019,"diff":0.668,"plat":"MCI"},{"mes":"Ene","unidad":9562,"seg":"OTROS","kms":179,"litros":48.3,"rend":3.706,"presup":3.895,"diff":-0.189,"plat":"Irizar"},{"mes":"Ene","unidad":9552,"seg":"OTROS","kms":104,"litros":28.1,"rend":3.701,"presup":3.895,"diff":-0.194,"plat":"Irizar"},{"mes":"Ene","unidad":9590,"seg":"OTROS","kms":337,"litros":90.4,"rend":3.728,"presup":3.517,"diff":0.211,"plat":"Irizar"},{"mes":"Ene","unidad":93,"seg":"OTROS","kms":664,"litros":176.3,"rend":3.766,"presup":3.019,"diff":0.747,"plat":"MCI"},{"mes":"Ene","unidad":9825,"seg":"OTROS","kms":548,"litros":145.2,"rend":3.774,"presup":3.578,"diff":0.196,"plat":"Irizar"},{"mes":"Ene","unidad":8951,"seg":"OTROS","kms":74,"litros":19.6,"rend":3.776,"presup":3.018,"diff":0.758,"plat":"Irizar"},{"mes":"Ene","unidad":9568,"seg":"OTROS","kms":413,"litros":107.5,"rend":3.842,"presup":3.895,"diff":-0.053,"plat":"Irizar"},{"mes":"Ene","unidad":9534,"seg":"OTROS","kms":755,"litros":193.9,"rend":3.894,"presup":3.517,"diff":0.377,"plat":"Irizar"},{"mes":"Ene","unidad":8819,"seg":"OTROS","kms":219,"litros":56.2,"rend":3.897,"presup":3.921,"diff":-0.024,"plat":"Irizar"},{"mes":"Ene","unidad":8913,"seg":"OTROS","kms":37,"litros":9.4,"rend":3.936,"presup":3.921,"diff":0.015,"plat":"Irizar"},{"mes":"Ene","unidad":8224,"seg":"OTROS","kms":111,"litros":28.1,"rend":3.95,"presup":4.064,"diff":-0.114,"plat":"Marcopolo"},{"mes":"Ene","unidad":8210,"seg":"OTROS","kms":111,"litros":28.1,"rend":3.95,"presup":4.064,"diff":-0.114,"plat":"Marcopolo"},{"mes":"Ene","unidad":8212,"seg":"OTROS","kms":233,"litros":58.7,"rend":3.969,"presup":4.064,"diff":-0.095,"plat":"Marcopolo"},{"mes":"Ene","unidad":9675,"seg":"OTROS","kms":664,"litros":165.9,"rend":4.002,"presup":3.019,"diff":0.983,"plat":"MCI"},{"mes":"Ene","unidad":9580,"seg":"OTROS","kms":160,"litros":39.9,"rend":4.01,"presup":3.895,"diff":0.115,"plat":"Irizar"},{"mes":"Ene","unidad":9582,"seg":"OTROS","kms":7,"litros":1.7,"rend":4.118,"presup":3.895,"diff":0.223,"plat":"Irizar"},{"mes":"Ene","unidad":8804,"seg":"OTROS","kms":328,"litros":81.1,"rend":4.044,"presup":3.921,"diff":0.123,"plat":"Irizar"},{"mes":"Ene","unidad":92,"seg":"OTROS","kms":783,"litros":193.3,"rend":4.051,"presup":3.019,"diff":1.032,"plat":"MCI"},{"mes":"Ene","unidad":9547,"seg":"OTROS","kms":393,"litros":95.7,"rend":4.107,"presup":3.649,"diff":0.458,"plat":"Irizar"},{"mes":"Ene","unidad":8221,"seg":"OTROS","kms":423,"litros":102.6,"rend":4.123,"presup":4.064,"diff":0.059,"plat":"Marcopolo"},{"mes":"Ene","unidad":8822,"seg":"OTROS","kms":95,"litros":22.9,"rend":4.148,"presup":3.921,"diff":0.227,"plat":"Irizar"},{"mes":"Ene","unidad":9583,"seg":"OTROS","kms":60,"litros":14.5,"rend":4.138,"presup":3.895,"diff":0.243,"plat":"Irizar"},{"mes":"Ene","unidad":9577,"seg":"OTROS","kms":32,"litros":7.6,"rend":4.211,"presup":3.895,"diff":0.316,"plat":"Irizar"},{"mes":"Ene","unidad":9803,"seg":"OTROS","kms":393,"litros":94.2,"rend":4.172,"presup":3.578,"diff":0.594,"plat":"Irizar"},{"mes":"Ene","unidad":9578,"seg":"OTROS","kms":111,"litros":26.6,"rend":4.173,"presup":3.895,"diff":0.278,"plat":"Irizar"},{"mes":"Ene","unidad":8811,"seg":"OTROS","kms":111,"litros":26.3,"rend":4.221,"presup":3.921,"diff":0.3,"plat":"Irizar"},{"mes":"Ene","unidad":9570,"seg":"OTROS","kms":111,"litros":26.3,"rend":4.221,"presup":3.895,"diff":0.326,"plat":"Irizar"},{"mes":"Ene","unidad":8227,"seg":"OTROS","kms":277,"litros":65.4,"rend":4.235,"presup":4.064,"diff":0.171,"plat":"Marcopolo"},{"mes":"Ene","unidad":8202,"seg":"OTROS","kms":44,"litros":10.4,"rend":4.231,"presup":4.064,"diff":0.167,"plat":"Marcopolo"},{"mes":"Ene","unidad":59,"seg":"OTROS","kms":572,"litros":135.0,"rend":4.237,"presup":3.467,"diff":0.77,"plat":"MCI"},{"mes":"Ene","unidad":9834,"seg":"OTROS","kms":131,"litros":30.9,"rend":4.239,"presup":3.578,"diff":0.661,"plat":"Irizar"},{"mes":"Ene","unidad":9122,"seg":"OTROS","kms":783,"litros":181.6,"rend":4.312,"presup":3.424,"diff":0.888,"plat":"Multego"},{"mes":"Ene","unidad":8215,"seg":"OTROS","kms":277,"litros":63.2,"rend":4.383,"presup":4.064,"diff":0.319,"plat":"Marcopolo"},{"mes":"Ene","unidad":8818,"seg":"OTROS","kms":111,"litros":25.3,"rend":4.387,"presup":3.921,"diff":0.466,"plat":"Irizar"},{"mes":"Ene","unidad":8807,"seg":"OTROS","kms":115,"litros":26.1,"rend":4.406,"presup":3.921,"diff":0.485,"plat":"Irizar"},{"mes":"Ene","unidad":8808,"seg":"OTROS","kms":428,"litros":96.2,"rend":4.449,"presup":3.921,"diff":0.528,"plat":"Irizar"},{"mes":"Ene","unidad":9576,"seg":"OTROS","kms":74,"litros":16.6,"rend":4.458,"presup":3.895,"diff":0.563,"plat":"Irizar"},{"mes":"Ene","unidad":9563,"seg":"OTROS","kms":111,"litros":24.7,"rend":4.494,"presup":3.895,"diff":0.599,"plat":"Irizar"},{"mes":"Ene","unidad":9529,"seg":"OTROS","kms":67,"litros":14.9,"rend":4.497,"presup":3.895,"diff":0.602,"plat":"Irizar"},{"mes":"Ene","unidad":8802,"seg":"OTROS","kms":111,"litros":24.7,"rend":4.494,"presup":3.921,"diff":0.573,"plat":"Irizar"},{"mes":"Ene","unidad":9532,"seg":"OTROS","kms":111,"litros":24.7,"rend":4.494,"presup":3.895,"diff":0.599,"plat":"Irizar"},{"mes":"Ene","unidad":90,"seg":"OTROS","kms":247,"litros":54.5,"rend":4.532,"presup":3.019,"diff":1.513,"plat":"MCI"},{"mes":"Ene","unidad":9550,"seg":"OTROS","kms":62,"litros":13.7,"rend":4.526,"presup":3.895,"diff":0.631,"plat":"Irizar"},{"mes":"Ene","unidad":8206,"seg":"OTROS","kms":222,"litros":48.6,"rend":4.568,"presup":4.064,"diff":0.504,"plat":"Marcopolo"},{"mes":"Ene","unidad":8203,"seg":"OTROS","kms":206,"litros":45.0,"rend":4.578,"presup":4.064,"diff":0.514,"plat":"Marcopolo"},{"mes":"Ene","unidad":8806,"seg":"OTROS","kms":241,"litros":52.5,"rend":4.59,"presup":3.921,"diff":0.669,"plat":"Irizar"},{"mes":"Ene","unidad":8208,"seg":"OTROS","kms":75,"litros":16.3,"rend":4.601,"presup":4.064,"diff":0.537,"plat":"Marcopolo"},{"mes":"Ene","unidad":9544,"seg":"OTROS","kms":46,"litros":9.9,"rend":4.646,"presup":3.895,"diff":0.751,"plat":"Irizar"},{"mes":"Ene","unidad":8216,"seg":"OTROS","kms":196,"litros":41.5,"rend":4.723,"presup":4.064,"diff":0.659,"plat":"Marcopolo"},{"mes":"Ene","unidad":85,"seg":"OTROS","kms":242,"litros":50.5,"rend":4.792,"presup":3.019,"diff":1.773,"plat":"MCI"},{"mes":"Ene","unidad":8207,"seg":"OTROS","kms":111,"litros":23.1,"rend":4.805,"presup":4.064,"diff":0.741,"plat":"Marcopolo"},{"mes":"Ene","unidad":9682,"seg":"OTROS","kms":131,"litros":27.2,"rend":4.816,"presup":3.019,"diff":1.797,"plat":"MCI"},{"mes":"Ene","unidad":70,"seg":"OTROS","kms":131,"litros":26.9,"rend":4.87,"presup":3.467,"diff":1.403,"plat":"MCI"},{"mes":"Ene","unidad":9433,"seg":"OTROS","kms":3054,"litros":622.4,"rend":4.907,"presup":3.119,"diff":1.788,"plat":"Irizar"},{"mes":"Ene","unidad":9349,"seg":"OTROS","kms":614,"litros":123.1,"rend":4.988,"presup":3.089,"diff":1.899,"plat":"Multego"},{"mes":"Ene","unidad":8219,"seg":"OTROS","kms":222,"litros":44.4,"rend":5.0,"presup":4.064,"diff":0.936,"plat":"Marcopolo"},{"mes":"Ene","unidad":9690,"seg":"OTROS","kms":177,"litros":35.0,"rend":5.057,"presup":3.019,"diff":2.038,"plat":"MCI"},{"mes":"Ene","unidad":9833,"seg":"OTROS","kms":524,"litros":97.6,"rend":5.369,"presup":3.578,"diff":1.791,"plat":"Irizar"},{"mes":"Ene","unidad":9678,"seg":"OTROS","kms":131,"litros":22.6,"rend":5.796,"presup":3.019,"diff":2.777,"plat":"MCI"},{"mes":"Ene","unidad":78,"seg":"OTROS","kms":417,"litros":68.5,"rend":6.088,"presup":3.019,"diff":3.069,"plat":"MCI"},{"mes":"Ene","unidad":9351,"seg":"OTROS","kms":131,"litros":19.0,"rend":6.895,"presup":3.089,"diff":3.806,"plat":"Multego"},{"mes":"Ene","unidad":72,"seg":"OTROS","kms":652,"litros":91.1,"rend":7.157,"presup":3.467,"diff":3.69,"plat":"MCI"},{"mes":"Ene","unidad":75,"seg":"OTROS","kms":131,"litros":17.2,"rend":7.616,"presup":3.467,"diff":4.149,"plat":"MCI"},{"mes":"Ene","unidad":71,"seg":"OTROS","kms":703,"litros":73.1,"rend":9.617,"presup":3.467,"diff":6.15,"plat":"MCI"},{"mes":"Ene","unidad":9363,"seg":"OTROS","kms":913,"litros":93.5,"rend":9.765,"presup":3.089,"diff":6.676,"plat":"Multego"},{"mes":"Ene","unidad":8127,"seg":"OTROS","kms":866,"litros":73.6,"rend":11.766,"presup":3.119,"diff":8.647,"plat":"Irizar"},{"mes":"Ene","unidad":8678,"seg":"OTROS","kms":2927,"litros":195.4,"rend":14.98,"presup":3.424,"diff":11.556,"plat":"Multego"},{"mes":"Feb","unidad":9832,"seg":"OTROS","kms":1780,"litros":892.5,"rend":1.994,"presup":3.578,"diff":-1.584,"plat":"Irizar"},{"mes":"Feb","unidad":84,"seg":"OTROS","kms":524,"litros":233.2,"rend":2.247,"presup":3.087,"diff":-0.84,"plat":"MCI"},{"mes":"Feb","unidad":9606,"seg":"OTROS","kms":2142,"litros":924.5,"rend":2.317,"presup":3.119,"diff":-0.802,"plat":"Irizar"},{"mes":"Feb","unidad":87,"seg":"OTROS","kms":2620,"litros":1050.0,"rend":2.495,"presup":3.087,"diff":-0.592,"plat":"MCI"},{"mes":"Feb","unidad":9876,"seg":"OTROS","kms":111,"litros":42.5,"rend":2.612,"presup":3.087,"diff":-0.475,"plat":"MCI"},{"mes":"Feb","unidad":9873,"seg":"OTROS","kms":372,"litros":139.5,"rend":2.667,"presup":3.087,"diff":-0.42,"plat":"MCI"},{"mes":"Feb","unidad":80,"seg":"OTROS","kms":735,"litros":275.5,"rend":2.668,"presup":3.087,"diff":-0.419,"plat":"MCI"},{"mes":"Feb","unidad":8826,"seg":"OTROS","kms":74,"litros":27.6,"rend":2.681,"presup":3.4,"diff":-0.719,"plat":"Irizar"},{"mes":"Feb","unidad":9433,"seg":"OTROS","kms":3098,"litros":1129.9,"rend":2.742,"presup":3.119,"diff":-0.377,"plat":"Irizar"},{"mes":"Feb","unidad":8925,"seg":"OTROS","kms":296,"litros":104.0,"rend":2.846,"presup":3.4,"diff":-0.554,"plat":"Irizar"},{"mes":"Feb","unidad":8923,"seg":"OTROS","kms":244,"litros":84.8,"rend":2.877,"presup":3.4,"diff":-0.523,"plat":"Irizar"},{"mes":"Feb","unidad":8911,"seg":"OTROS","kms":37,"litros":12.4,"rend":2.984,"presup":3.4,"diff":-0.416,"plat":"Irizar"},{"mes":"Feb","unidad":8921,"seg":"OTROS","kms":37,"litros":12.0,"rend":3.083,"presup":3.4,"diff":-0.317,"plat":"Irizar"},{"mes":"Feb","unidad":8825,"seg":"OTROS","kms":259,"litros":83.3,"rend":3.109,"presup":3.4,"diff":-0.291,"plat":"Irizar"},{"mes":"Feb","unidad":8922,"seg":"OTROS","kms":37,"litros":11.7,"rend":3.162,"presup":3.4,"diff":-0.238,"plat":"Irizar"},{"mes":"Feb","unidad":8239,"seg":"OTROS","kms":439,"litros":138.2,"rend":3.177,"presup":4.259,"diff":-1.082,"plat":"Marcopolo"},{"mes":"Feb","unidad":9531,"seg":"OTROS","kms":131,"litros":41.1,"rend":3.187,"presup":3.535,"diff":-0.348,"plat":"Irizar"},{"mes":"Feb","unidad":9617,"seg":"OTROS","kms":131,"litros":41.0,"rend":3.195,"presup":3.535,"diff":-0.34,"plat":"Irizar"},{"mes":"Feb","unidad":8823,"seg":"OTROS","kms":322,"litros":98.9,"rend":3.256,"presup":3.675,"diff":-0.419,"plat":"Irizar"},{"mes":"Feb","unidad":9871,"seg":"OTROS","kms":897,"litros":272.5,"rend":3.292,"presup":3.087,"diff":0.205,"plat":"MCI"},{"mes":"Feb","unidad":9543,"seg":"OTROS","kms":679,"litros":205.2,"rend":3.309,"presup":3.535,"diff":-0.226,"plat":"Irizar"},{"mes":"Feb","unidad":8914,"seg":"OTROS","kms":111,"litros":33.0,"rend":3.364,"presup":3.4,"diff":-0.036,"plat":"Irizar"},{"mes":"Feb","unidad":9567,"seg":"OTROS","kms":328,"litros":97.5,"rend":3.364,"presup":3.93,"diff":-0.566,"plat":"Irizar"},{"mes":"Feb","unidad":9553,"seg":"OTROS","kms":111,"litros":32.9,"rend":3.374,"presup":3.535,"diff":-0.161,"plat":"Irizar"},{"mes":"Feb","unidad":8831,"seg":"OTROS","kms":37,"litros":10.9,"rend":3.394,"presup":3.4,"diff":-0.006,"plat":"Irizar"},{"mes":"Feb","unidad":8157,"seg":"OTROS","kms":2636,"litros":773.9,"rend":3.406,"presup":3.142,"diff":0.264,"plat":"Irizar"},{"mes":"Feb","unidad":8824,"seg":"OTROS","kms":213,"litros":61.4,"rend":3.469,"presup":3.675,"diff":-0.206,"plat":"Irizar"},{"mes":"Feb","unidad":9570,"seg":"OTROS","kms":111,"litros":31.0,"rend":3.581,"presup":3.93,"diff":-0.349,"plat":"Irizar"},{"mes":"Feb","unidad":9556,"seg":"OTROS","kms":111,"litros":31.0,"rend":3.581,"presup":3.708,"diff":-0.127,"plat":"Irizar"},{"mes":"Feb","unidad":9671,"seg":"OTROS","kms":257,"litros":69.2,"rend":3.714,"presup":3.087,"diff":0.627,"plat":"MCI"},{"mes":"Feb","unidad":8237,"seg":"OTROS","kms":445,"litros":118.5,"rend":3.755,"presup":4.259,"diff":-0.504,"plat":"Marcopolo"},{"mes":"Feb","unidad":9585,"seg":"OTROS","kms":9,"litros":2.4,"rend":3.75,"presup":3.93,"diff":-0.18,"plat":"Irizar"},{"mes":"Feb","unidad":9618,"seg":"OTROS","kms":262,"litros":68.6,"rend":3.819,"presup":3.535,"diff":0.284,"plat":"Irizar"},{"mes":"Feb","unidad":9533,"seg":"OTROS","kms":111,"litros":28.8,"rend":3.854,"presup":3.93,"diff":-0.076,"plat":"Irizar"},{"mes":"Feb","unidad":9532,"seg":"OTROS","kms":46,"litros":11.9,"rend":3.866,"presup":3.93,"diff":-0.064,"plat":"Irizar"},{"mes":"Feb","unidad":9528,"seg":"OTROS","kms":89,"litros":22.5,"rend":3.956,"presup":3.93,"diff":0.026,"plat":"Irizar"},{"mes":"Feb","unidad":9124,"seg":"OTROS","kms":111,"litros":28.1,"rend":3.95,"presup":3.675,"diff":0.275,"plat":"Irizar"},{"mes":"Feb","unidad":9522,"seg":"OTROS","kms":879,"litros":222.1,"rend":3.958,"presup":3.93,"diff":0.028,"plat":"Irizar"},{"mes":"Feb","unidad":9569,"seg":"OTROS","kms":46,"litros":11.5,"rend":4.0,"presup":3.93,"diff":0.07,"plat":"Irizar"},{"mes":"Feb","unidad":9123,"seg":"OTROS","kms":47,"litros":11.7,"rend":4.017,"presup":4.095,"diff":-0.078,"plat":"Volvo"},{"mes":"Feb","unidad":8808,"seg":"OTROS","kms":111,"litros":27.7,"rend":4.007,"presup":3.675,"diff":0.332,"plat":"Irizar"},{"mes":"Feb","unidad":8233,"seg":"OTROS","kms":111,"litros":27.7,"rend":4.007,"presup":4.259,"diff":-0.252,"plat":"Marcopolo"},{"mes":"Feb","unidad":9591,"seg":"OTROS","kms":538,"litros":134.0,"rend":4.015,"presup":3.93,"diff":0.085,"plat":"Irizar"},{"mes":"Feb","unidad":9558,"seg":"OTROS","kms":111,"litros":27.6,"rend":4.022,"presup":3.93,"diff":0.092,"plat":"Irizar"},{"mes":"Feb","unidad":8212,"seg":"OTROS","kms":134,"litros":33.3,"rend":4.024,"presup":4.259,"diff":-0.235,"plat":"Marcopolo"},{"mes":"Feb","unidad":8207,"seg":"OTROS","kms":219,"litros":54.4,"rend":4.026,"presup":4.259,"diff":-0.233,"plat":"Marcopolo"},{"mes":"Feb","unidad":9586,"seg":"OTROS","kms":111,"litros":27.4,"rend":4.051,"presup":3.93,"diff":0.121,"plat":"Irizar"},{"mes":"Feb","unidad":9589,"seg":"OTROS","kms":103,"litros":25.2,"rend":4.087,"presup":3.93,"diff":0.157,"plat":"Irizar"},{"mes":"Feb","unidad":9557,"seg":"OTROS","kms":12,"litros":2.9,"rend":4.138,"presup":3.93,"diff":0.208,"plat":"Irizar"},{"mes":"Feb","unidad":8803,"seg":"OTROS","kms":222,"litros":53.4,"rend":4.157,"presup":3.675,"diff":0.482,"plat":"Irizar"},{"mes":"Feb","unidad":9590,"seg":"OTROS","kms":148,"litros":35.4,"rend":4.181,"presup":3.708,"diff":0.473,"plat":"Irizar"},{"mes":"Feb","unidad":9571,"seg":"OTROS","kms":13,"litros":3.1,"rend":4.194,"presup":3.93,"diff":0.264,"plat":"Irizar"},{"mes":"Feb","unidad":9529,"seg":"OTROS","kms":54,"litros":12.8,"rend":4.219,"presup":3.93,"diff":0.289,"plat":"Irizar"},{"mes":"Feb","unidad":8818,"seg":"OTROS","kms":365,"litros":85.7,"rend":4.259,"presup":3.675,"diff":0.584,"plat":"Irizar"},{"mes":"Feb","unidad":8221,"seg":"OTROS","kms":47,"litros":10.9,"rend":4.312,"presup":4.259,"diff":0.053,"plat":"Marcopolo"},{"mes":"Feb","unidad":8810,"seg":"OTROS","kms":111,"litros":25.6,"rend":4.336,"presup":3.675,"diff":0.661,"plat":"Irizar"},{"mes":"Feb","unidad":8222,"seg":"OTROS","kms":46,"litros":10.6,"rend":4.34,"presup":4.259,"diff":0.081,"plat":"Marcopolo"},{"mes":"Feb","unidad":9587,"seg":"OTROS","kms":111,"litros":25.3,"rend":4.387,"presup":3.93,"diff":0.457,"plat":"Irizar"},{"mes":"Feb","unidad":9544,"seg":"OTROS","kms":292,"litros":66.3,"rend":4.404,"presup":3.93,"diff":0.474,"plat":"Irizar"},{"mes":"Feb","unidad":9580,"seg":"OTROS","kms":47,"litros":10.6,"rend":4.434,"presup":3.93,"diff":0.504,"plat":"Irizar"},{"mes":"Feb","unidad":9582,"seg":"OTROS","kms":11,"litros":2.4,"rend":4.583,"presup":3.93,"diff":0.653,"plat":"Irizar"},{"mes":"Feb","unidad":9564,"seg":"OTROS","kms":330,"litros":72.4,"rend":4.558,"presup":3.93,"diff":0.628,"plat":"Irizar"},{"mes":"Feb","unidad":8203,"seg":"OTROS","kms":99,"litros":21.5,"rend":4.605,"presup":4.259,"diff":0.346,"plat":"Marcopolo"},{"mes":"Feb","unidad":9577,"seg":"OTROS","kms":111,"litros":22.9,"rend":4.847,"presup":3.93,"diff":0.917,"plat":"Irizar"},{"mes":"Feb","unidad":9546,"seg":"OTROS","kms":61,"litros":12.4,"rend":4.919,"presup":3.93,"diff":0.989,"plat":"Irizar"},{"mes":"Feb","unidad":9581,"seg":"OTROS","kms":372,"litros":75.2,"rend":4.947,"presup":3.93,"diff":1.017,"plat":"Irizar"},{"mes":"Ene","unidad":9874,"seg":"VES MEX","kms":1715,"litros":655.8,"rend":2.615,"presup":3.019,"diff":-0.404,"plat":"MCI"},{"mes":"Ene","unidad":9672,"seg":"VES MEX","kms":85,"litros":30.6,"rend":2.778,"presup":3.019,"diff":-0.241,"plat":"MCI"},{"mes":"Ene","unidad":9879,"seg":"VES MEX","kms":6203,"litros":2202.2,"rend":2.817,"presup":3.019,"diff":-0.202,"plat":"MCI"},{"mes":"Ene","unidad":9527,"seg":"VES MEX","kms":20,"litros":6.7,"rend":2.985,"presup":3.649,"diff":-0.664,"plat":"Irizar"},{"mes":"Ene","unidad":9873,"seg":"VES MEX","kms":119,"litros":39.5,"rend":3.013,"presup":3.019,"diff":-0.006,"plat":"MCI"},{"mes":"Ene","unidad":91,"seg":"VES MEX","kms":1452,"litros":461.6,"rend":3.146,"presup":3.019,"diff":0.127,"plat":"MCI"},{"mes":"Ene","unidad":8916,"seg":"VES MEX","kms":74,"litros":23.0,"rend":3.217,"presup":3.921,"diff":-0.704,"plat":"Irizar"},{"mes":"Ene","unidad":9569,"seg":"VES MEX","kms":455,"litros":140.2,"rend":3.245,"presup":3.895,"diff":-0.65,"plat":"Irizar"},{"mes":"Ene","unidad":9877,"seg":"VES MEX","kms":822,"litros":250.8,"rend":3.278,"presup":3.019,"diff":0.259,"plat":"MCI"},{"mes":"Ene","unidad":8924,"seg":"VES MEX","kms":75,"litros":22.7,"rend":3.304,"presup":3.921,"diff":-0.617,"plat":"Irizar"},{"mes":"Ene","unidad":8829,"seg":"VES MEX","kms":76,"litros":22.8,"rend":3.333,"presup":3.921,"diff":-0.588,"plat":"Irizar"},{"mes":"Ene","unidad":9525,"seg":"VES MEX","kms":20,"litros":5.8,"rend":3.448,"presup":3.649,"diff":-0.201,"plat":"Irizar"},{"mes":"Ene","unidad":9876,"seg":"VES MEX","kms":899,"litros":253.2,"rend":3.551,"presup":3.019,"diff":0.532,"plat":"MCI"},{"mes":"Ene","unidad":8915,"seg":"VES MEX","kms":73,"litros":20.6,"rend":3.544,"presup":3.921,"diff":-0.377,"plat":"Irizar"},{"mes":"Ene","unidad":9543,"seg":"VES MEX","kms":20,"litros":5.6,"rend":3.571,"presup":3.649,"diff":-0.078,"plat":"Irizar"},{"mes":"Ene","unidad":9557,"seg":"VES MEX","kms":480,"litros":130.1,"rend":3.689,"presup":3.895,"diff":-0.206,"plat":"Irizar"},{"mes":"Ene","unidad":9590,"seg":"VES MEX","kms":75,"litros":20.1,"rend":3.731,"presup":3.517,"diff":0.214,"plat":"Irizar"},{"mes":"Ene","unidad":8921,"seg":"VES MEX","kms":75,"litros":19.0,"rend":3.947,"presup":3.921,"diff":0.026,"plat":"Irizar"},{"mes":"Ene","unidad":8210,"seg":"VES MEX","kms":1782,"litros":450.7,"rend":3.954,"presup":4.064,"diff":-0.11,"plat":"Marcopolo"},{"mes":"Ene","unidad":9555,"seg":"VES MEX","kms":81,"litros":19.8,"rend":4.091,"presup":3.895,"diff":0.196,"plat":"Irizar"},{"mes":"Ene","unidad":9578,"seg":"VES MEX","kms":76,"litros":18.2,"rend":4.176,"presup":3.895,"diff":0.281,"plat":"Irizar"},{"mes":"Feb","unidad":9879,"seg":"VES MEX","kms":2100,"litros":998.8,"rend":2.103,"presup":3.087,"diff":-0.984,"plat":"MCI"},{"mes":"Feb","unidad":9683,"seg":"VES MEX","kms":1470,"litros":695.9,"rend":2.112,"presup":3.087,"diff":-0.975,"plat":"MCI"},{"mes":"Feb","unidad":9672,"seg":"VES MEX","kms":79,"litros":33.4,"rend":2.365,"presup":3.087,"diff":-0.722,"plat":"MCI"},{"mes":"Feb","unidad":81,"seg":"VES MEX","kms":1569,"litros":592.0,"rend":2.65,"presup":3.087,"diff":-0.437,"plat":"MCI"},{"mes":"Feb","unidad":9873,"seg":"VES MEX","kms":994,"litros":372.8,"rend":2.666,"presup":3.087,"diff":-0.421,"plat":"MCI"},{"mes":"Feb","unidad":9878,"seg":"VES MEX","kms":3182,"litros":1185.9,"rend":2.683,"presup":3.087,"diff":-0.404,"plat":"MCI"},{"mes":"Feb","unidad":9877,"seg":"VES MEX","kms":2446,"litros":898.9,"rend":2.721,"presup":3.087,"diff":-0.366,"plat":"MCI"},{"mes":"Feb","unidad":77,"seg":"VES MEX","kms":1414,"litros":492.3,"rend":2.872,"presup":3.087,"diff":-0.215,"plat":"MCI"},{"mes":"Feb","unidad":8913,"seg":"VES MEX","kms":300,"litros":100.8,"rend":2.976,"presup":3.4,"diff":-0.424,"plat":"Irizar"},{"mes":"Feb","unidad":9874,"seg":"VES MEX","kms":1545,"litros":505.1,"rend":3.059,"presup":3.087,"diff":-0.028,"plat":"MCI"},{"mes":"Feb","unidad":9671,"seg":"VES MEX","kms":79,"litros":21.4,"rend":3.692,"presup":3.087,"diff":0.605,"plat":"MCI"},{"mes":"Feb","unidad":8237,"seg":"VES MEX","kms":451,"litros":120.1,"rend":3.755,"presup":4.259,"diff":-0.504,"plat":"Marcopolo"},{"mes":"Feb","unidad":8805,"seg":"VES MEX","kms":1837,"litros":485.9,"rend":3.781,"presup":3.675,"diff":0.106,"plat":"Irizar"},{"mes":"Feb","unidad":9522,"seg":"VES MEX","kms":2051,"litros":518.3,"rend":3.957,"presup":3.93,"diff":0.027,"plat":"Irizar"},{"mes":"Feb","unidad":9559,"seg":"VES MEX","kms":456,"litros":110.3,"rend":4.134,"presup":3.93,"diff":0.204,"plat":"Irizar"},{"mes":"Feb","unidad":9562,"seg":"VES MEX","kms":1914,"litros":440.6,"rend":4.344,"presup":3.93,"diff":0.414,"plat":"Irizar"}];
+</script>
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let mesActual="Todos";
+let segActual="Todos";
+let charts={};
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+const fmt=(n,d=0)=>n.toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+function filterSM(){
+  let d=SEG_M;
+  if(mesActual!=="Todos") d=d.filter(r=>r.mes===mesActual);
+  if(segActual!=="Todos") d=d.filter(r=>r.cat===segActual);
+  return d;
+}
+function filterPM(){
+  let d=PLAT_M;
+  if(mesActual!=="Todos") d=d.filter(r=>r.mes===mesActual);
+  return d;
+}
+function filterTM(){
+  let d=TIPO_M;
+  if(mesActual!=="Todos") d=d.filter(r=>r.mes===mesActual);
+  return d;
+}
+function aggregateByCat(arr){
+  const m={};
+  arr.forEach(d=>{
+    if(!m[d.cat]) m[d.cat]={cat:d.cat,kms:0,litros:0,count:0};
+    m[d.cat].kms+=d.kms; m[d.cat].litros+=d.litros; m[d.cat].count+=d.count;
+  });
+  return Object.values(m).map(r=>({...r,rend:r.litros>0?r.kms/r.litros:0}));
+}
+
+function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+const BASE_OPTS={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{
+    legend:{labels:{color:"#475569",font:{family:"DM Sans",size:11},boxWidth:10,padding:14}},
+    tooltip:{
+      backgroundColor:"#FFFFFF",borderColor:"#D8E2F0",borderWidth:1.5,
+      titleColor:"#0F172A",bodyColor:"#475569",padding:12,
+      titleFont:{family:"Outfit",size:15,weight:"700"},
+      bodyFont:{family:"IBM Plex Mono",size:11},
+      callbacks:{label:c=>` ${c.dataset.label||'Valor'}: ${parseFloat(c.raw).toFixed(3)}`}
+    }
+  }
+};
+const SCALE_X={ticks:{color:"#94A3B8",font:{family:"DM Sans",size:12,weight:"500"}},grid:{color:"rgba(203,213,225,0.7)"},border:{color:"#CBD5E1"}};
+const SCALE_Y_REND={ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:11},callback:v=>v.toFixed(2)+' km/L'},grid:{color:"rgba(203,213,225,0.7)"},border:{color:"#CBD5E1"},min:2.0};
+const SCALE_Y_KMS={ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:11},callback:v=>(v/1000).toFixed(0)+'K'},grid:{color:"rgba(203,213,225,0.7)"},border:{color:"#CBD5E1"}};
+
+// ════════════════════════════════════════
+// FILTERS
+// ════════════════════════════════════════
+function setMes(mes,el){
+  mesActual=mes;
+  document.querySelectorAll('.filterbar .filter-group:first-child .fbtn').forEach(b=>{
+    b.className='fbtn';
+    if(b===el) b.classList.add(mes==='Todos'?'act-all':'act-mes');
+  });
+  document.getElementById('compSection').style.display=mes==='Todos'?'':'none';
+  document.getElementById('lpMes').value=mes==='Todos'?'Todos':mes;
+  renderAll();
+}
+function setSeg(seg,el){
+  segActual=seg;
+  document.querySelectorAll('.filterbar .filter-group:last-child .fbtn').forEach(b=>{
+    b.className='fbtn';
+    if(b===el) b.classList.add('act-seg');
+  });
+  renderAll();
+}
+
+// ════════════════════════════════════════
+// KPIs
+// ════════════════════════════════════════
+function renderKPIs(){
+  const sd=aggregateByCat(filterSM());
+  const pd=aggregateByCat(filterPM());
+  const tk=sd.reduce((a,b)=>a+b.kms,0);
+  const tl=sd.reduce((a,b)=>a+b.litros,0);
+  const ar=tl>0?tk/tl:0;
+  const tu=sd.reduce((a,b)=>a+b.count,0);
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi c1 fi fi1">
+      <div class="kpi-lbl">Rendimiento Real</div>
+      <div class="kpi-val">${ar.toFixed(3)}</div>
+      <div class="kpi-sub">Km / Litro</div>
+      <div class="kpi-ico">⚡</div>
+    </div>
+    <div class="kpi c2 fi fi2">
+      <div class="kpi-lbl">Km Liquidados</div>
+      <div class="kpi-val">${fmt(tk/1000000,2)}M</div>
+      <div class="kpi-sub">${fmt(tk)} km totales</div>
+      <div class="kpi-ico">📍</div>
+    </div>
+    <div class="kpi c3 fi fi3">
+      <div class="kpi-lbl">Litros Consumidos</div>
+      <div class="kpi-val">${fmt(tl/1000,1)}K</div>
+      <div class="kpi-sub">${fmt(tl,0)} litros totales</div>
+      <div class="kpi-ico">🛢️</div>
+    </div>
+    <div class="kpi c4 fi fi4">
+      <div class="kpi-lbl">Registros Unidades</div>
+      <div class="kpi-val">${fmt(tu)}</div>
+      <div class="kpi-sub">Registros en el período</div>
+      <div class="kpi-ico">📊</div>
+    </div>`;
+}
+
+// ════════════════════════════════════════
+// TREND CHARTS (Ene/Feb + future placeholder)
+// ════════════════════════════════════════
+function makeGrad(ctx,color){
+  const g=ctx.createLinearGradient(0,0,0,220);
+  g.addColorStop(0,color+'44');
+  g.addColorStop(1,color+'05');
+  return g;
+}
+
+function renderTrendSeg(){
+  destroy('trendSeg');
+  const ctx=document.getElementById('cTrendSeg').getContext('2d');
+  const segs=segActual==='Todos'
+    ?["DIAMANTE","ORDINARIO","IMSS","OTROS","VES MEX"]
+    :[segActual];
+  const months=["Ene","Feb"];
+  const datasets=[];
+
+  segs.forEach(seg=>{
+    const color=SEG_COLORS[seg]||'#ffffff';
+    // 2026 as bars
+    const pts26=months.map(m=>{
+      const d=SEG_M.find(r=>r.mes===m&&r.cat===seg);
+      return d?d.rend:null;
+    });
+    datasets.push({
+      type:'bar',
+      label:`${seg} 2026`,
+      data:pts26,
+      backgroundColor:color+'55',
+      borderColor:color,
+      borderWidth:2,
+      yAxisID:'y',
+      order:2,
+      barThickness:segs.length>2?16:24
+    });
+    // 2025 as line
+    const pts25=months.map(m=>{
+      const d=SEG_M25.find(r=>r.mes===m&&r.cat===seg);
+      return d?d.rend:null;
+    });
+    datasets.push({
+      type:'line',
+      label:`${seg} 2025`,
+      data:pts25,
+      borderColor:color+'aa',
+      backgroundColor:'transparent',
+      borderWidth:2,
+      borderDash:[5,4],
+      pointBackgroundColor:color,
+      pointRadius:5,pointHoverRadius:8,
+      tension:0.3,fill:false,
+      yAxisID:'y',
+      order:1
+    });
+  });
+
+  charts.trendSeg=new Chart(ctx,{
+    data:{labels:months,datasets},
+    options:{
+      ...BASE_OPTS,responsive:true,maintainAspectRatio:false,
+      plugins:{
+        ...BASE_OPTS.plugins,
+        legend:{...BASE_OPTS.plugins.legend,display:true},
+        tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y?.toFixed(3)} km/L`}}
+      },
+      scales:{x:SCALE_X,y:{...SCALE_Y_REND,min:2.5}}
+    }
+  });
+}
+
+function renderTrendPlat(){
+  destroy('trendPlat');
+  const ctx=document.getElementById('cTrendPlat').getContext('2d');
+  const plats=["Irizar","Marcopolo","MCI","Volvo","Multego"];
+  const months=["Ene","Feb"];
+  const datasets=[];
+
+  plats.forEach(p=>{
+    const color=PLAT_COLORS[p]||'#999';
+    const pts26=months.map(m=>{
+      const d=PLAT_M.find(r=>r.mes===m&&r.cat===p);
+      return d?d.rend:null;
+    });
+    const hasData=pts26.some(v=>v!==null);
+    if(!hasData) return;
+
+    datasets.push({
+      type:'bar',
+      label:`${p} 2026`,
+      data:pts26,
+      backgroundColor:color+'55',
+      borderColor:color,
+      borderWidth:2,
+      order:2,
+      barThickness:18
+    });
+
+    const pts25=months.map(m=>{ const d=PLAT_M25.find(r=>r.mes===m&&r.cat===p); return d?d.rend:null; });
+    datasets.push({
+      type:'line',
+      label:`${p} 2025`,
+      data:pts25,
+      borderColor:color+'aa',
+      backgroundColor:'transparent',
+      borderWidth:2,
+      borderDash:[5,4],
+      pointBackgroundColor:color,
+      pointRadius:5,pointHoverRadius:8,
+      tension:0.3,fill:false,
+      order:1,
+      spanGaps:false
+    });
+  });
+
+  charts.trendPlat=new Chart(ctx,{
+    data:{labels:months,datasets},
+    options:{
+      ...BASE_OPTS,responsive:true,maintainAspectRatio:false,
+      scales:{x:SCALE_X,y:{...SCALE_Y_REND,min:2.0}},
+      plugins:{...BASE_OPTS.plugins,tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y?.toFixed(3)} km/L`}}}
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// SEG TABLERO (tipo ROL board)
+// ════════════════════════════════════════
+function renderSegTablero(){
+  const badge=document.getElementById('tagSegBadge');
+  badge.textContent=mesActual==='Todos'?'ACUMULADO':mesActual.toUpperCase();
+
+  // ── 2026 data ──
+  const raw=filterSM();
+  const agg=aggregateByCat(raw);
+  const byName={};
+  agg.forEach(r=>{byName[r.cat]=r;});
+
+  // ── 2025 data (filter same month) ──
+  let raw25=SEG_M25;
+  if(mesActual!=='Todos') raw25=raw25.filter(r=>r.mes===mesActual);
+  const agg25=aggregateByCat(raw25);
+
+  // ── Aplicar ajuste de inventario 2025 proporcionalmente por % km ──
+  // Calcular el ajuste total de litros para los meses seleccionados
+  const mesesEnDatos=[...new Set(raw25.map(r=>r.mes))];
+  const totalAjusteLitros=mesesEnDatos.reduce((s,m)=>(s+(AJUSTE_2025[m]||0)),0);
+
+  if(totalAjusteLitros>0){
+    const totalKms25=agg25.reduce((s,r)=>s+r.kms,0)||1;
+    agg25.forEach(r=>{
+      const pct=r.kms/totalKms25;
+      const litrosAdj=r.litros-(totalAjusteLitros*pct);
+      r.litros=litrosAdj;
+      r.rend=r.kms/litrosAdj;
+    });
+  }
+
+  const byName25={};
+  agg25.forEach(r=>{byName25[r.cat]=r;});
+
+  const federal={cat:'FEDERAL',children:['DIAMANTE','ORDINARIO']};
+  const turimex={cat:'TURIMEX',children:['IMSS','VES MEX','OTROS']};
+
+  function getRow26(name){const r=byName[name];return r||{kms:0,litros:0,rend:0};}
+  function getRow25(name){const r=byName25[name];return r||{kms:0,litros:0,rend:0};}
+  function groupTotal26(names){let k=0,l=0;names.forEach(n=>{const r=getRow26(n);k+=r.kms;l+=r.litros;});return{kms:k,litros:l,rend:l>0?k/l:0};}
+  function groupTotal25(names){let k=0,l=0;names.forEach(n=>{const r=getRow25(n);k+=r.kms;l+=r.litros;});return{kms:k,litros:l,rend:l>0?k/l:0};}
+
+  const fedTotal26=groupTotal26(federal.children);
+  const fedTotal25=groupTotal25(federal.children);
+  const turTotal26=groupTotal26(turimex.children);
+  const turTotal25=groupTotal25(turimex.children);
+  const allSegs=[...federal.children,...turimex.children];
+  const grandTotal26=groupTotal26(allSegs);
+  const grandTotal25=groupTotal25(allSegs);
+  const totalKms=grandTotal26.kms||1;
+
+  function varBadge(r26,r25){
+    if(!r25||!r26) return '<span class="var-na">—</span>';
+    const delta=((r26-r25)/r25*100);
+    const col=delta>=0?'var(--teal)':'var(--red)';
+    const arrow=delta>=0?'▲':'▼';
+    return `<span style="color:${col};font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600">${arrow} ${Math.abs(delta).toFixed(1)}%</span>`;
+  }
+
+  function barHTML(rend,color){
+    const pct=(rend/5*100).toFixed(1);
+    return `<div class="tbl-bar-wrap"><div class="tbl-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+  }
+
+  function childRow(name){
+    const r26=getRow26(name); const r25=getRow25(name);
+    const color=SEG_COLORS[name]||'#7a94b8';
+    const pctKms=((r26.kms/totalKms)*100).toFixed(1);
+    if(!r26.kms&&!r25.kms) return '';
+    return `<tr class="tr-child">
+      <td style="color:${color};font-weight:500">${name}</td>
+      <td><span class="tbl-mono" style="color:var(--blue)">${fmt(r26.kms)}</span></td>
+      <td><span class="tbl-mono" style="color:var(--text2)">${fmt(r26.litros,0)}</span></td>
+      <td>${barHTML(r26.rend,color)}<span class="tbl-rend-val" style="color:${color}">${r26.rend.toFixed(2)}</span></td>
+      <td><span class="tbl-mono tbl-y25" style="color:var(--text3)">${fmt(r25.kms)}</span></td>
+      <td><span class="tbl-mono tbl-y25" style="color:var(--text3)">${fmt(r25.litros,0)}</span></td>
+      <td>${barHTML(r25.rend,'#3d8ef055')}<span class="tbl-rend-val tbl-y25">${r25.rend.toFixed(2)}</span></td>
+      <td>${varBadge(r26.rend,r25.rend)}</td>
+      <td><span class="tbl-pct" style="color:var(--text3)">${pctKms}%</span></td>
+    </tr>`;
+  }
+
+  function standaloneRow(name){
+    const r26=getRow26(name); const r25=getRow25(name);
+    const color=SEG_COLORS[name]||'#7a94b8';
+    const pctKms=((r26.kms/totalKms)*100).toFixed(1);
+    if(!r26.kms&&!r25.kms) return '';
+    return `<tr class="tr-seg-standalone">
+      <td style="color:${color};font-weight:600;border-left:3px solid ${color}">${name}</td>
+      <td><span class="tbl-mono" style="color:var(--blue)">${fmt(r26.kms)}</span></td>
+      <td><span class="tbl-mono" style="color:var(--text2)">${fmt(r26.litros,0)}</span></td>
+      <td>${barHTML(r26.rend,color)}<span class="tbl-rend-val" style="color:${color}">${r26.rend.toFixed(2)}</span></td>
+      <td><span class="tbl-mono tbl-y25" style="color:var(--text3)">${fmt(r25.kms)}</span></td>
+      <td><span class="tbl-mono tbl-y25" style="color:var(--text3)">${fmt(r25.litros,0)}</span></td>
+      <td>${barHTML(r25.rend,'#1D5FD455')}<span class="tbl-rend-val tbl-y25">${r25.rend.toFixed(2)}</span></td>
+      <td>${varBadge(r26.rend,r25.rend)}</td>
+      <td><span class="tbl-pct" style="color:var(--text3)">${pctKms}%</span></td>
+    </tr>`;
+  }
+
+  function groupRow(label,t26,t25,isTurimex=false){
+    const color=isTurimex?'var(--gold)':'var(--blue)';
+    const barCol=isTurimex?'#f5a623':'#3d8ef0';
+    const pctKms=((t26.kms/totalKms)*100).toFixed(1);
+    const trClass=isTurimex?'tr-turimex':'tr-group-hd';
+    return `<tr class="${trClass}">
+      <td>▸ ${label}</td>
+      <td><span class="tbl-mono">${fmt(t26.kms)}</span></td>
+      <td><span class="tbl-mono">${fmt(t26.litros,0)}</span></td>
+      <td>${barHTML(t26.rend,barCol)}<span class="tbl-rend-val">${t26.rend.toFixed(2)}</span></td>
+      <td><span class="tbl-mono tbl-y25">${fmt(t25.kms)}</span></td>
+      <td><span class="tbl-mono tbl-y25">${fmt(t25.litros,0)}</span></td>
+      <td>${barHTML(t25.rend,barCol+'55')}<span class="tbl-rend-val tbl-y25">${t25.rend.toFixed(2)}</span></td>
+      <td>${varBadge(t26.rend,t25.rend)}</td>
+      <td><span class="tbl-pct">${pctKms}%</span></td>
+    </tr>`;
+  }
+
+  const html=`<table class="tablero">
+    <thead>
+      <tr>
+        <th rowspan="2">Tipo de ROL</th>
+        <th colspan="3" style="color:var(--gold);border-bottom:2px solid var(--gold)">2026</th>
+        <th colspan="3" style="color:var(--blue);border-bottom:2px solid var(--blue)">2025</th>
+        <th rowspan="2">Var. Rend</th>
+        <th rowspan="2">% Part. Km</th>
+      </tr>
+      <tr>
+        <th style="font-size:10px;color:var(--text3)">Kilómetros</th>
+        <th style="font-size:10px;color:var(--text3)">Litros</th>
+        <th style="font-size:10px;color:var(--text3)">Rendimiento</th>
+        <th style="font-size:10px;color:var(--text3)">Kilómetros</th>
+        <th style="font-size:10px;color:var(--text3)">Litros</th>
+        <th style="font-size:10px;color:var(--text3)">Rendimiento</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${groupRow('FEDERAL',fedTotal26,fedTotal25,false)}
+      ${childRow('DIAMANTE')}
+      ${childRow('ORDINARIO')}
+      ${standaloneRow('IMSS')}
+      ${standaloneRow('VES MEX')}
+      ${standaloneRow('OTROS')}
+      <tr class="tr-total">
+        <td>Total General</td>
+        <td><span class="tbl-mono">${fmt(grandTotal26.kms)}</span></td>
+        <td><span class="tbl-mono">${fmt(grandTotal26.litros,0)}</span></td>
+        <td>${barHTML(grandTotal26.rend,'#f5a623')}<span class="tbl-rend-val">${grandTotal26.rend.toFixed(2)}</span></td>
+        <td><span class="tbl-mono tbl-y25">${fmt(grandTotal25.kms)}</span></td>
+        <td><span class="tbl-mono tbl-y25">${fmt(grandTotal25.litros,0)}</span></td>
+        <td>${barHTML(grandTotal25.rend,'#3d8ef055')}<span class="tbl-rend-val tbl-y25">${grandTotal25.rend.toFixed(2)}</span></td>
+        <td>${varBadge(grandTotal26.rend,grandTotal25.rend)}</td>
+        <td><span class="tbl-pct">100%</span></td>
+      </tr>
+    </tbody>
+  </table>`;
+  document.getElementById('segTablero').innerHTML=html;
+}
+
+// ════════════════════════════════════════
+// SEG PIE
+// ════════════════════════════════════════
+function renderSegPie(){
+  destroy('segPie');
+  const data=aggregateByCat(filterSM());
+  const ctx=document.getElementById('cSegPie').getContext('2d');
+  charts.segPie=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:data.map(d=>d.cat),
+      datasets:[{
+        data:data.map(d=>d.litros),
+        backgroundColor:data.map(d=>SEG_COLORS[d.cat]+'88'),
+        borderColor:data.map(d=>SEG_COLORS[d.cat]),
+        borderWidth:2,hoverOffset:10
+      }]
+    },
+    options:{
+      ...BASE_OPTS,cutout:'62%',
+      plugins:{
+        ...BASE_OPTS.plugins,
+        tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{label:c=>` ${c.label}: ${fmt(c.raw,0)} L`}}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// PLAT BAR (horizontal)
+// ════════════════════════════════════════
+function renderPlatBar(){
+  destroy('platBar');
+  const tag=document.getElementById('tagPlatBar');
+  tag.textContent=mesActual==='Todos'?'ACUMULADO':mesActual.toUpperCase();
+  const data=aggregateByCat(filterPM()).sort((a,b)=>b.rend-a.rend);
+  const ctx=document.getElementById('cPlatBar').getContext('2d');
+  charts.platBar=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.cat),
+      datasets:[{
+        data:data.map(d=>+d.rend.toFixed(3)),
+        backgroundColor:data.map(d=>(PLAT_COLORS[d.cat]||'#64748b')+'33'),
+        borderColor:data.map(d=>PLAT_COLORS[d.cat]||'#64748b'),
+        borderWidth:2,borderRadius:6,
+      }]
+    },
+    options:{
+      ...BASE_OPTS,indexAxis:'y',
+      plugins:{
+        ...BASE_OPTS.plugins,
+        legend:{display:false},
+        tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{label:c=>` Km/L: ${parseFloat(c.raw).toFixed(3)}`}}
+      },
+      scales:{
+        x:{...SCALE_Y_REND,min:2.0,title:{display:false}},
+        y:{ticks:{color:"#0F172A",font:{family:"DM Sans",size:13,weight:"500"}},grid:{color:"rgba(203,213,225,0.7)"},border:{color:"#CBD5E1"}}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// PLAT KMS
+// ════════════════════════════════════════
+function renderPlatKms(){
+  destroy('platKms');
+  const data=aggregateByCat(filterPM()).sort((a,b)=>b.kms-a.kms);
+  const totalKms=data.reduce((s,d)=>s+d.kms,0)||1;
+  const ctx=document.getElementById('cPlatKms').getContext('2d');
+
+  // Plugin inline para dibujar % encima de cada barra
+  const pctLabelPlugin={
+    id:'pctLabel',
+    afterDatasetsDraw(chart){
+      const {ctx:c,data:cd,scales:{x,y}}=chart;
+      const total=cd.datasets[0].data.reduce((s,v)=>s+v,0)||1;
+      c.save();
+      cd.datasets[0].data.forEach((val,i)=>{
+        const meta=chart.getDatasetMeta(0).data[i];
+        const pct=((val/total)*100).toFixed(1)+'%';
+        c.fillStyle='#0F172A';
+        c.font='bold 11px "IBM Plex Mono"';
+        c.textAlign='center';
+        c.textBaseline='bottom';
+        c.fillText(pct, meta.x, meta.y-4);
+      });
+      c.restore();
+    }
+  };
+
+  charts.platKms=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.cat),
+      datasets:[{
+        data:data.map(d=>d.kms),
+        backgroundColor:data.map(d=>(PLAT_COLORS[d.cat]||'#64748b')+'33'),
+        borderColor:data.map(d=>PLAT_COLORS[d.cat]||'#64748b'),
+        borderWidth:2,borderRadius:6,
+      }]
+    },
+    options:{
+      ...BASE_OPTS,
+      layout:{padding:{top:24}},
+      plugins:{
+        ...BASE_OPTS.plugins,
+        legend:{display:false},
+        tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{
+          label:c=>{
+            const pct=((c.raw/totalKms)*100).toFixed(1);
+            return ` ${fmt(c.raw,0)} km  (${pct}%)`;
+          }
+        }}
+      },
+      scales:{x:SCALE_X,y:SCALE_Y_KMS}
+    },
+    plugins:[pctLabelPlugin]
+  });
+}
+
+// ════════════════════════════════════════
+// TIPO PLATAFORMA BAR
+// ════════════════════════════════════════
+function renderTipoBar(){
+  destroy('tipoBar');
+  const tag=document.getElementById('tagTipoBar');
+  tag.textContent=mesActual==='Todos'?'ACUMULADO':mesActual.toUpperCase();
+  const raw=aggregateByCat(filterTM())
+    .filter(d=>d.kms>5000 && d.rend>0)  // filter out tiny/zero records
+    .sort((a,b)=>b.rend-a.rend);
+  const ctx=document.getElementById('cTipoBar').getContext('2d');
+  charts.tipoBar=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:raw.map(d=>d.cat),
+      datasets:[{
+        label:'Km/Litro',
+        data:raw.map(d=>+d.rend.toFixed(3)),
+        backgroundColor:raw.map(d=>(TIPO_COLORS[d.cat]||'#64748b')+'33'),
+        borderColor:raw.map(d=>TIPO_COLORS[d.cat]||'#64748b'),
+        borderWidth:2,borderRadius:6,
+        hoverBackgroundColor:raw.map(d=>(TIPO_COLORS[d.cat]||'#64748b')+'66'),
+      }]
+    },
+    options:{
+      ...BASE_OPTS,indexAxis:'y',
+      plugins:{
+        ...BASE_OPTS.plugins,
+        legend:{display:false},
+        tooltip:{
+          ...BASE_OPTS.plugins.tooltip,
+          callbacks:{
+            label:c=>` Rendimiento: ${parseFloat(c.raw).toFixed(3)} Km/L`,
+            afterLabel:c=>{
+              const d=raw[c.dataIndex];
+              return ` Km: ${fmt(d.kms,0)}  |  Litros: ${fmt(d.litros,0)}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{...SCALE_Y_REND,min:2.0},
+        y:{ticks:{color:"#0F172A",font:{family:"DM Sans",size:12,weight:"500"}},grid:{color:"rgba(203,213,225,0.6)"},border:{color:"#CBD5E1"}}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// TIPO PLATAFORMA PIE
+// ════════════════════════════════════════
+function renderTipoPie(){
+  destroy('tipoPie');
+  const raw=aggregateByCat(filterTM())
+    .filter(d=>d.kms>5000)
+    .sort((a,b)=>b.kms-a.kms);
+  const ctx=document.getElementById('cTipoPie').getContext('2d');
+  charts.tipoPie=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:raw.map(d=>d.cat),
+      datasets:[{
+        data:raw.map(d=>d.kms),
+        backgroundColor:raw.map(d=>(TIPO_COLORS[d.cat]||'#64748b')+'88'),
+        borderColor:raw.map(d=>TIPO_COLORS[d.cat]||'#64748b'),
+        borderWidth:2,hoverOffset:10
+      }]
+    },
+    options:{
+      ...BASE_OPTS,cutout:'60%',
+      plugins:{
+        ...BASE_OPTS.plugins,
+        tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{
+          label:c=>` ${c.label}: ${fmt(c.raw,0)} km`
+        }}
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// COMPARATIVE
+// ════════════════════════════════════════
+function renderCompSeg(){
+  destroy('compSeg');
+  const segs=["DIAMANTE","ORDINARIO","IMSS","OTROS","VES MEX"];
+  const ene=segs.map(s=>{const d=SEG_M.find(r=>r.mes==='Ene'&&r.cat===s);return d?+d.rend.toFixed(3):null;});
+  const feb=segs.map(s=>{const d=SEG_M.find(r=>r.mes==='Feb'&&r.cat===s);return d?+d.rend.toFixed(3):null;});
+  const ctx=document.getElementById('cCompSeg').getContext('2d');
+  charts.compSeg=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:segs,
+      datasets:[
+        {label:'Enero',  data:ene,backgroundColor:'rgba(245,166,35,0.22)',borderColor:'#f5a623',borderWidth:2,borderRadius:5},
+        {label:'Febrero',data:feb,backgroundColor:'rgba(61,142,240,0.22)',borderColor:'#3d8ef0',borderWidth:2,borderRadius:5},
+      ]
+    },
+    options:{
+      ...BASE_OPTS,
+      plugins:{...BASE_OPTS.plugins,tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw} Km/L`}}},
+      scales:{x:SCALE_X,y:{...SCALE_Y_REND,min:2.5}}
+    }
+  });
+}
+function renderCompPlat(){
+  destroy('compPlat');
+  const plats=["Irizar","Marcopolo","MCI","Volvo"];
+  const ene=plats.map(p=>{const d=PLAT_M.find(r=>r.mes==='Ene'&&r.cat===p);return d?+d.rend.toFixed(3):null;});
+  const feb=plats.map(p=>{const d=PLAT_M.find(r=>r.mes==='Feb'&&r.cat===p);return d?+d.rend.toFixed(3):null;});
+  const ctx=document.getElementById('cCompPlat').getContext('2d');
+  charts.compPlat=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:plats,
+      datasets:[
+        {label:'Enero',  data:ene,backgroundColor:'rgba(245,166,35,0.22)',borderColor:'#f5a623',borderWidth:2,borderRadius:5},
+        {label:'Febrero',data:feb,backgroundColor:'rgba(61,142,240,0.22)',borderColor:'#3d8ef0',borderWidth:2,borderRadius:5},
+      ]
+    },
+    options:{
+      ...BASE_OPTS,
+      plugins:{...BASE_OPTS.plugins,tooltip:{...BASE_OPTS.plugins.tooltip,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw??'N/D'} Km/L`}}},
+      scales:{x:SCALE_X,y:{...SCALE_Y_REND,min:2.0}}
+    }
+  });
+}
+
+// ════════════════════════════════════════
+// LOW PERF TABLE
+// ════════════════════════════════════════
+const SEG_P_MAP={DIAMANTE:'sp-D',ORDINARIO:'sp-O',IMSS:'sp-I',OTROS:'sp-T','VES MEX':'sp-V'};
+const PLAT_C_MAP={Irizar:'#22d3f7',Marcopolo:'#f5a623',MCI:'#f04760',Multego:'#c084fc',Volvo:'#34d399'};
+
+function renderLPTable(){
+  const mes=document.getElementById('lpMes').value;
+  const seg=document.getElementById('lpSeg').value;
+  const filter=document.getElementById('lpFilter').value;
+
+  let data=[...UNITS_AGG];
+  if(mes!=='Todos') data=data.filter(u=>u.mes===mes);
+  if(seg!=='Todos') data=data.filter(u=>u.seg===seg);
+
+  const below=data.filter(u=>u.diff<0);
+  const above=data.filter(u=>u.diff>=0);
+
+  document.getElementById('statBajo').textContent=`${below.length} bajo presupuesto`;
+  document.getElementById('statOk').textContent=`${above.length} en/sobre presupuesto`;
+
+  let rows;
+  if(filter==='bajo') rows=below.sort((a,b)=>a.diff-b.diff);
+  else if(filter==='top') rows=data.sort((a,b)=>b.rend-a.rend).slice(0,20);
+  else rows=data.sort((a,b)=>a.diff-b.diff);
+
+  _renderLPRows(rows);
+}
+
+function _renderLPRows(rows, highlightUid=null){
+  const maxR=Math.max(...rows.map(r=>r.rend),0.01);
+  document.getElementById('lpBody').innerHTML=rows.map(u=>{
+    const pillClass=SEG_P_MAP[u.seg]||'sp-D';
+    const diffStr=u.diff>=0?`+${u.diff.toFixed(3)}`:`${u.diff.toFixed(3)}`;
+    const diffClass=u.diff<0?'diff-neg':'diff-pos';
+    const pct=(u.rend/maxR*100).toFixed(1);
+    const barColor=u.diff<0?'#f04760':u.diff<0.1?'#f5a623':'#00d4aa';
+    const platColor=(PLAT_C_MAP||{})[u.plat]||'#7a94b8';
+    const statusLbl=u.diff<0
+      ?'<span style="color:var(--red);font-size:11px;font-family:JetBrains Mono,monospace">BAJO PRES.</span>'
+      :'<span style="color:var(--teal);font-size:11px;font-family:JetBrains Mono,monospace">OK</span>';
+    const hl=highlightUid!==null&&u.unidad===highlightUid;
+    const rowStyle=hl?'background:rgba(245,166,35,0.07);outline:1px solid rgba(245,166,35,0.3);':'';
+    return `<tr style="${rowStyle}">
+      <td><span class="mono c-gold" style="font-weight:${hl?700:400}">${u.unidad}${hl?' ◀':''}</span></td>
+      <td><span class="mono c-dim">${u.mes}</span></td>
+      <td><span class="spill ${pillClass}">${u.seg}</span></td>
+      <td><span style="color:${platColor};font-family:JetBrains Mono,monospace;font-size:12px">${u.plat}</span></td>
+      <td><span class="mono c-blue">${fmt(u.kms)}</span></td>
+      <td><span class="mono c-dim">${fmt(u.litros,1)}</span></td>
+      <td>
+        <div class="prog">
+          <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${barColor}"></div></div>
+          <span class="mono" style="color:${barColor}">${u.rend.toFixed(3)}</span>
+        </div>
+      </td>
+      <td><span class="mono c-dim">${u.presup.toFixed(3)}</span></td>
+      <td><span class="${diffClass}">${diffStr}</span></td>
+      <td>${statusLbl}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── AGGREGACIÓN: una fila por unidad + mes ──────────────────────────────
+// Suma km y litros, rendimiento = km_total / litros_total
+// presupuesto = promedio de presupuestos del mes
+const UNITS_AGG = (()=>{
+  const map = {};
+  UNITS.forEach(u=>{
+    const k = `${u.unidad}|${u.mes}`;
+    if(!map[k]){
+      map[k] = {unidad:u.unidad, mes:u.mes, kms:0, litros:0,
+        presupSum:0, presupCount:0,
+        seg:u.seg,   // primer segmento encontrado (dominante)
+        plat:u.plat,
+        _segCounts:{}, _platCounts:{}};
+    }
+    const r = map[k];
+    r.kms    += u.kms;
+    r.litros += u.litros;
+    r.presupSum   += u.presup;
+    r.presupCount += 1;
+    r._segCounts[u.seg]  = (r._segCounts[u.seg]  || 0) + u.kms;
+    r._platCounts[u.plat]= (r._platCounts[u.plat]|| 0) + u.kms;
+  });
+  return Object.values(map).map(r=>{
+    // seg y plat dominantes por km
+    r.seg  = Object.keys(r._segCounts) .sort((a,b)=>r._segCounts[b] -r._segCounts[a] )[0];
+    r.plat = Object.keys(r._platCounts).sort((a,b)=>r._platCounts[b]-r._platCounts[a])[0];
+    r.rend   = r.litros>0 ? r.kms/r.litros : 0;
+    r.presup = r.presupSum/r.presupCount;
+    r.diff   = r.rend - r.presup;
+    delete r._segCounts; delete r._platCounts;
+    delete r.presupSum;  delete r.presupCount;
+    return r;
+  });
+})();
+function renderTop10(){
+  // Filtrar UNITS por mes y segmento activos
+  let raw = UNITS;
+  if(mesActual !== 'Todos') raw = raw.filter(r => r.mes === mesActual);
+  if(segActual !== 'Todos') raw = raw.filter(r => r.seg === segActual);
+
+  // Agrupar por unidad+mes (una unidad puede tener varios registros en distintos segmentos)
+  const map = {};
+  raw.forEach(r => {
+    const key = `${r.unidad}_${r.mes}`;
+    if(!map[key]){
+      map[key] = {unidad:r.unidad, mes:r.mes, seg:r.seg, plat:r.plat, kms:0, litros:0, presup:r.presup};
+    }
+    map[key].kms    += r.kms;
+    map[key].litros += r.litros;
+  });
+
+  // Calcular rendimiento y diff vs presupuesto; filtrar ruido (<500 km)
+  const rows = Object.values(map)
+    .filter(r => r.kms >= 500 && r.litros > 0)
+    .map(r => {
+      const rend = r.kms / r.litros;
+      const diff = rend - r.presup;
+      return {...r, rend, diff};
+    });
+
+  const best  = [...rows].sort((a,b) => b.rend - a.rend).slice(0, 10);
+  const worst = [...rows].sort((a,b) => a.rend - b.rend).slice(0, 10);
+
+  const SEG_COLOR = {DIAMANTE:'#1D5FD4',ORDINARIO:'#D97706',IMSS:'#059669','VES MEX':'#7C3AED',OTROS:'#94A3B8'};
+
+  function row(r, rank, isBest){
+    const diffCol = r.diff >= 0 ? 'var(--teal)' : 'var(--red)';
+    const diffArr = r.diff >= 0 ? '▲' : '▼';
+    const rankBg  = isBest
+      ? (rank===1?'#FFD700':rank===2?'#C0C0C0':rank===3?'#CD7F32':'#EEF2F8')
+      : (rank===1?'#EF4444':rank===2?'#F87171':rank===3?'#FCA5A5':'#FFF4F4');
+    const rankCol = rank<=3 ? (isBest&&rank<=3?'#0F172A':'#fff') : '#475569';
+    const segCol  = SEG_COLOR[r.seg] || '#94A3B8';
+    return `<tr style="border-bottom:1px solid #EEF2F8;transition:background .15s" onmouseover="this.style.background='#F8FAFF'" onmouseout="this.style.background=''">
+      <td style="padding:7px 10px;text-align:center">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${rankBg};color:${rankCol};font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700">${rank}</span>
+      </td>
+      <td style="padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:#0F172A;font-size:13px">${r.unidad}</td>
+      <td style="padding:7px 10px"><span style="background:${segCol}18;color:${segCol};font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:20px;border:1px solid ${segCol}40">${r.seg}</span></td>
+      <td style="padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:12px;color:#475569">${r.mes}</td>
+      <td style="padding:7px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#475569">${r.kms.toLocaleString('es-MX')}</td>
+      <td style="padding:7px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:700;color:${isBest?'var(--teal)':'var(--red)'};font-size:14px">${r.rend.toFixed(3)}</td>
+      <td style="padding:7px 10px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:${diffCol};font-weight:600">${diffArr} ${Math.abs(r.diff).toFixed(3)}</td>
+    </tr>`;
+  }
+
+  const noData = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#94A3B8;font-family:\'DM Sans\',sans-serif">Sin datos para el filtro seleccionado</td></tr>';
+  document.getElementById('top10BestBody').innerHTML  = best.length  ? best.map((r,i)  => row(r,i+1,true)).join('')  : noData;
+  document.getElementById('top10WorstBody').innerHTML = worst.length ? worst.map((r,i) => row(r,i+1,false)).join('') : noData;
+}
+
+function renderAll(){
+  renderKPIs();
+  renderSegTablero();
+  renderPlatBar();
+  renderPlatKms();
+  renderTipoBar();
+  renderTipoPie();
+  if(mesActual==='Todos'){renderCompSeg();renderCompPlat();}
+  renderLPTable();
+  renderTop10();
+}
+
+// ════════════════════════════════════════
+// UNIT SEARCH
+// ════════════════════════════════════════
+const SEG_P_MAP2={DIAMANTE:'sp-D',ORDINARIO:'sp-O',IMSS:'sp-I',OTROS:'sp-T','VES MEX':'sp-V'};
+
+function onUnitSearch(val){
+  const clearBtn=document.getElementById('usClear');
+  const drop=document.getElementById('usDropdown');
+  val=val.trim();
+  clearBtn.classList.toggle('visible',val.length>0);
+
+  if(!val){drop.classList.remove('open');drop.innerHTML='';return;}
+
+  // Find matching unit numbers from aggregated data
+  const matches=UNITS_AGG.filter(u=>String(u.unidad).startsWith(val));
+
+  if(!matches.length){
+    drop.innerHTML=`<div class="us-no-results">Sin resultados para <strong style="color:var(--text)">${val}</strong></div>`;
+    drop.classList.add('open');
+    return;
+  }
+
+  // Group by unit number (may have Ene + Feb rows)
+  const byUnit={};
+  matches.forEach(u=>{
+    if(!byUnit[u.unidad]) byUnit[u.unidad]=[];
+    byUnit[u.unidad].push(u);
+  });
+
+  const unitNums=Object.keys(byUnit).slice(0,8);
+  let html=`<div class="us-result-hd">${Object.keys(byUnit).length} unidad${Object.keys(byUnit).length!==1?'es':''} encontrada${Object.keys(byUnit).length!==1?'s':''}</div>`;
+
+  unitNums.forEach(uid=>{
+    const rows=byUnit[uid];
+    const segs=[...new Set(rows.map(r=>r.seg))];
+    const plats=[...new Set(rows.map(r=>r.plat))];
+    const meses=rows.map(r=>r.mes);
+    const totalKms=rows.reduce((a,b)=>a+b.kms,0);
+    const avgRend=totalKms>0?rows.reduce((a,b)=>a+b.rend*b.kms,0)/totalKms:0;
+    const avgDiff=rows.reduce((a,b)=>a+b.diff,0)/rows.length;
+    const chipClass=avgDiff<-0.3?'bad':avgDiff<0?'warn':'good';
+    const segClass=SEG_P_MAP2[segs[0]]||'sp-D';
+    html+=`<div class="us-result-item" onclick="selectUnit(${uid})">
+      <div class="us-unit-num">${uid}</div>
+      <div class="us-unit-meta">
+        <div class="seg-row">
+          <span class="spill ${segClass}">${segs.join(', ')}</span>
+          ${meses.map(m=>`<span class="mes-tag">${m}</span>`).join('')}
+        </div>
+        <div class="us-stat">${plats.join(' · ')}</div>
+      </div>
+      <div class="us-rend-chip ${chipClass}">${avgRend.toFixed(3)} km/L</div>
+    </div>`;
+  });
+
+  if(Object.keys(byUnit).length>8) html+=`<div class="us-result-hd" style="text-align:center;cursor:default">… y ${Object.keys(byUnit).length-8} unidades más</div>`;
+  drop.innerHTML=html;
+  drop.classList.add('open');
+}
+
+function selectUnit(uid){
+  const rows=UNITS_AGG.filter(u=>u.unidad===uid);
+  if(!rows.length) return;
+
+  document.getElementById('unitSearchInput').value=uid;
+  document.getElementById('usDropdown').classList.remove('open');
+  document.getElementById('usClear').classList.add('visible');
+  document.getElementById('upNum').textContent=uid;
+
+  const segs=[...new Set(rows.map(r=>r.seg))];
+  const plats=[...new Set(rows.map(r=>r.plat))];
+  const meses=[...new Set(rows.map(r=>r.mes))];
+  const segClass=SEG_P_MAP2[segs[0]]||'sp-D';
+  document.getElementById('upMeta').innerHTML=
+    `<span class="spill ${segClass}">${segs.join(' / ')}</span>`+
+    plats.map(p=>`<span class="mes-tag">${p}</span>`).join('')+
+    meses.map(m=>`<span class="mes-tag">${m}</span>`).join('');
+
+  const statsHTML=rows.map(r=>{
+    const diffColor=r.diff<0?'color:var(--red)':'color:var(--teal)';
+    const diffStr=r.diff>=0?`+${r.diff.toFixed(3)}`:`${r.diff.toFixed(3)}`;
+    const rendColor=r.diff<-0.3?'var(--red)':r.diff<0?'var(--gold)':'var(--teal)';
+    return `
+      <div class="up-stat">
+        <div class="up-stat-lbl">${r.mes} · Rendimiento</div>
+        <div class="up-stat-val" style="color:${rendColor}">${r.rend.toFixed(3)}</div>
+        <div class="up-stat-sub">Presup prom: ${r.presup.toFixed(3)} &nbsp;<span style="${diffColor};font-family:'IBM Plex Mono',monospace;font-size:12px">(${diffStr})</span></div>
+      </div>
+      <div class="up-stat">
+        <div class="up-stat-lbl">${r.mes} · Km Acumulados</div>
+        <div class="up-stat-val" style="color:var(--blue)">${fmt(r.kms)}</div>
+        <div class="up-stat-sub">km totales del mes</div>
+      </div>
+      <div class="up-stat">
+        <div class="up-stat-lbl">${r.mes} · Litros</div>
+        <div class="up-stat-val" style="color:var(--text2)">${fmt(r.litros,1)}</div>
+        <div class="up-stat-sub">litros consumidos</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('upStats').innerHTML=statsHTML;
+  document.getElementById('unitPanel').classList.add('open');
+  document.getElementById('unitPanel').scrollIntoView({behavior:'smooth',block:'start'});
+
+  document.getElementById('lpMes').value='Todos';
+  document.getElementById('lpSeg').value='Todos';
+  document.getElementById('lpFilter').value='todos';
+  const unitRows=UNITS_AGG.filter(u=>u.unidad===uid);
+  const others=UNITS_AGG.filter(u=>u.unidad!==uid&&u.diff<0).sort((a,b)=>a.diff-b.diff).slice(0,15);
+  _renderLPRows([...unitRows,...others], uid);
+}
+
+function clearUnitSearch(){
+  document.getElementById('unitSearchInput').value='';
+  document.getElementById('usDropdown').classList.remove('open');
+  document.getElementById('usClear').classList.remove('visible');
+  document.getElementById('unitPanel').classList.remove('open');
+  renderLPTable();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.unit-search-wrap')){
+    document.getElementById('usDropdown').classList.remove('open');
+  }
+});
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+document.getElementById('compSection').style.display='';
+renderAll();
+
+// ════════════════════════════════════════
+// DATOS COMPARATIVO 2025 vs 2026
+// ════════════════════════════════════════
+const DATA_COMP = {
+  months25: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Sep","Oct","Nov","Dic"],
+  months26: ["Ene","Feb"],
+  commonMonths: ["Ene","Feb"],
+  rend25: {"Ene":3.751,"Feb":3.761,"Mar":3.69,"Abr":3.658,"May":3.623,"Jun":3.688,"Jul":3.666,"Sep":3.744,"Oct":3.711,"Nov":3.745,"Dic":3.861},
+  rend26: {"Ene":3.945,"Feb":3.932},
+  rendSeg25: {
+    "DIAMANTE": {"Ene":3.841,"Feb":3.891,"Mar":3.814,"Abr":3.769,"May":3.736,"Jun":3.789,"Jul":3.695,"Sep":3.807,"Oct":3.797,"Nov":3.867,"Dic":3.933},
+    "ORDINARIO": {"Ene":3.207,"Feb":3.154,"Mar":3.166,"Abr":3.121,"May":3.067,"Jun":3.201,"Jul":3.528,"Sep":3.562,"Oct":3.176,"Nov":3.391,"Dic":3.43},
+    "IMSS":      {"Ene":3.665,"Feb":3.46,"Mar":3.243,"Abr":3.513,"May":3.62,"Jun":3.181,"Jul":3.794,"Sep":3.775,"Oct":3.332,"Nov":3.782,"Dic":3.763},
+    "VES MEX":   {"Ene":3.103,"Feb":3.073,"Mar":2.665,"Abr":2.678,"May":2.393,"Jun":2.433,"Jul":3.285,"Sep":2.897,"Oct":3.143,"Nov":2.691,"Dic":3.42}
+  },
+  rendSeg26: {
+    "DIAMANTE": {"Ene":4.016,"Feb":4.027},
+    "ORDINARIO":{"Ene":3.444,"Feb":3.414},
+    "IMSS":     {"Ene":3.561,"Feb":3.682},
+    "VES MEX":  {"Ene":3.058,"Feb":2.89}
+  },
+  rendPlat25: {
+    "Irizar":   {"Ene":3.786,"Feb":3.675,"Mar":3.598,"Abr":3.595,"May":3.551,"Jun":3.601,"Jul":3.683,"Sep":3.905,"Oct":3.701,"Nov":3.768,"Dic":3.915},
+    "Marcopolo":{"Ene":4.009,"Feb":4.221,"Mar":4.149,"Abr":4.17,"May":4.02,"Jun":4.075,"Jul":3.636,"Sep":3.749,"Oct":4.161,"Nov":4.134,"Dic":4.147},
+    "MCI":      {"Ene":2.945,"Feb":2.982,"Mar":2.841,"Abr":3.044,"May":2.12,"Jun":2.323,"Jul":3.21,"Sep":2.507,"Oct":2.506,"Nov":2.48,"Dic":3.229},
+    "Multego":  {"Ene":3.028,"Feb":2.917,"Mar":2.856,"Abr":2.869,"May":2.974,"Jun":3.184,"Jul":4.047,"Sep":2.701,"Oct":3.059,"Nov":3.189,"Dic":3.361},
+    "Volvo":    {"Ene":null,"Feb":null,"Mar":null,"Abr":2.353,"May":null,"Jun":3.569,"Jul":3.945,"Sep":6.175,"Oct":3.849,"Nov":3.623,"Dic":4.629}
+  },
+  rendPlat26: {
+    "Irizar":   {"Ene":3.909,"Feb":3.883},
+    "Marcopolo":{"Ene":4.283,"Feb":4.194},
+    "MCI":      {"Ene":3.248,"Feb":2.649},
+    "Multego":  {"Ene":3.617,"Feb":null},
+    "Volvo":    {"Ene":3.307,"Feb":4.001}
+  }
+};
+
+// ════════════════════════════════════════
+// RENDER COMPARATIVO
+// ════════════════════════════════════════
+(function renderComparativo(){
+  // ── KPI Cards ──
+  const kpiWrap = document.getElementById('comp-kpi');
+  const segsKpi = ['DIAMANTE','ORDINARIO','IMSS','VES MEX'];
+  const segColors = {DIAMANTE:'var(--gold)',ORDINARIO:'var(--blue)',IMSS:'var(--teal)','VES MEX':'var(--red)'};
+  let kpiHtml = '';
+
+  DATA_COMP.commonMonths.forEach(mes => {
+    const r26 = DATA_COMP.rend26[mes];
+    const r25 = DATA_COMP.rend25[mes];
+    const delta = r26 - r25;
+    const pct = ((delta/r25)*100).toFixed(1);
+    const col = delta >= 0 ? 'var(--teal)' : 'var(--red)';
+    const arrow = delta >= 0 ? '▲' : '▼';
+    kpiHtml += `<div class="kpi" style="--accent-c:var(--blue)">
+      <div class="kpi-lbl">RENDIMIENTO ${mes.toUpperCase()} — TOTAL FLOTA</div>
+      <div style="display:flex;align-items:flex-end;gap:18px;margin-bottom:4px">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:2px">2026</div>
+          <div class="kpi-val" style="color:var(--blue)">${r26.toFixed(3)}</div>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:2px">2025</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:700;color:var(--text2)">${r25.toFixed(3)}</div>
+        </div>
+        <div style="margin-bottom:4px;font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:${col}">${arrow} ${pct}%</div>
+      </div>
+      <div class="kpi-sub">km/L · vs mismo mes año anterior</div>
+      <div class="kpi-ico">📊</div>
+    </div>`;
+  });
+  kpiWrap.innerHTML = kpiHtml;
+
+  // ── Chart 1: Mixed – 2026 barras + 2025 línea ──
+  const ctx1 = document.getElementById('compChart1').getContext('2d');
+  const labels1 = DATA_COMP.months25;
+  const d26pts = labels1.map(m => DATA_COMP.rend26[m] ?? null);
+  new Chart(ctx1, {
+    data: {
+      labels: labels1,
+      datasets: [
+        {
+          type: 'bar',
+          label: '2026',
+          data: d26pts,
+          backgroundColor: 'rgba(245,166,35,0.55)',
+          borderColor: '#f5a623',
+          borderWidth: 2,
+          order: 2,
+          barThickness: 28
+        },
+        {
+          type: 'line',
+          label: '2025',
+          data: labels1.map(m => DATA_COMP.rend25[m]),
+          borderColor: 'rgba(61,142,240,0.85)',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: 'rgba(61,142,240,0.9)',
+          tension: 0.3,
+          fill: false,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: {
+        x: SCALE_X,
+        y: { ...SCALE_Y_REND, min: 3.0, max: 4.5,
+             ticks: { ...SCALE_Y_REND.ticks, stepSize: 0.1 } }
+      },
+      plugins: {
+        ...BASE_OPTS.plugins,
+        tooltip: {
+          ...BASE_OPTS.plugins.tooltip,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(3) : 'N/D'} km/L`
+          }
+        }
+      }
+    }
+  });
+
+  // ── Chart 2: Barras agrupadas por segmento (meses comunes) ──
+  const ctx2 = document.getElementById('compChart2').getContext('2d');
+  const segs4 = ['DIAMANTE','ORDINARIO','IMSS','VES MEX'];
+  const segC   = ['#f5a623','#3d8ef0','#00d4aa','#f04760'];
+  const labels2 = [];
+  const vals25_2 = [];
+  const vals26_2 = [];
+  DATA_COMP.commonMonths.forEach(mes => {
+    segs4.forEach((seg, i) => {
+      labels2.push(`${seg.substring(0,4)} ${mes}`);
+      vals25_2.push(DATA_COMP.rendSeg25[seg]?.[mes] ?? null);
+      vals26_2.push(DATA_COMP.rendSeg26[seg]?.[mes] ?? null);
+    });
+  });
+  new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: labels2,
+      datasets: [
+        { label:'2025', data:vals25_2, backgroundColor:'rgba(61,142,240,0.45)', borderColor:'rgba(61,142,240,0.8)', borderWidth:1 },
+        { label:'2026', data:vals26_2, backgroundColor:'rgba(245,166,35,0.55)', borderColor:'rgba(245,166,35,0.9)', borderWidth:1 }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: {
+        x: { ...SCALE_X, ticks: { ...SCALE_X.ticks, maxRotation: 45 } },
+        y: { ...SCALE_Y_REND, min: 2.5 }
+      },
+      plugins: {
+        ...BASE_OPTS.plugins,
+        tooltip: {
+          ...BASE_OPTS.plugins.tooltip,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(3)} km/L` }
+        }
+      }
+    }
+  });
+
+  // ── Chart 3: Barras agrupadas por plataforma (meses comunes) ──
+  const ctx3 = document.getElementById('compChart3').getContext('2d');
+  const plats5 = ['Irizar','Marcopolo','MCI','Multego','Volvo'];
+  const labels3 = [];
+  const vals25_3 = [];
+  const vals26_3 = [];
+  DATA_COMP.commonMonths.forEach(mes => {
+    plats5.forEach(p => {
+      const v25 = DATA_COMP.rendPlat25[p]?.[mes];
+      const v26 = DATA_COMP.rendPlat26[p]?.[mes];
+      if(v25 || v26){
+        labels3.push(`${p.substring(0,4)} ${mes}`);
+        vals25_3.push(v25 ?? null);
+        vals26_3.push(v26 ?? null);
+      }
+    });
+  });
+  new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: labels3,
+      datasets: [
+        { label:'2025', data:vals25_3, backgroundColor:'rgba(0,212,170,0.4)', borderColor:'rgba(0,212,170,0.8)', borderWidth:1 },
+        { label:'2026', data:vals26_3, backgroundColor:'rgba(155,114,245,0.5)', borderColor:'rgba(155,114,245,0.9)', borderWidth:1 }
+      ]
+    },
+    options: {
+      ...BASE_OPTS,
+      scales: {
+        x: { ...SCALE_X, ticks: { ...SCALE_X.ticks, maxRotation: 45 } },
+        y: { ...SCALE_Y_REND, min: 2.0 }
+      },
+      plugins: {
+        ...BASE_OPTS.plugins,
+        tooltip: {
+          ...BASE_OPTS.plugins.tooltip,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(3) : 'N/D'} km/L` }
+        }
+      }
+    }
+  });
+
+})();
+
+// ════════════════════════════════════════
+// EXPORTAR PDF
+// ════════════════════════════════════════
+async function exportPDF(){
+  const btn = document.getElementById('btnExportPDF');
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> GENERANDO…`;
+
+  // Ocultar botón en el PDF
+  btn.style.visibility = 'hidden';
+
+  const { jsPDF } = window.jspdf;
+  const wrap = document.querySelector('.wrap');
+  const W = wrap.scrollWidth;
+  const H = wrap.scrollHeight;
+
+  const canvas = await html2canvas(wrap, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#EEF2F8',
+    width: W,
+    height: H,
+    windowWidth: W,
+    scrollX: 0,
+    scrollY: 0,
+    logging: false
+  });
+
+  btn.style.visibility = 'visible';
+
+  // Página A4 apaisada escalada
+  const PDF_W = 297; // mm A4 landscape
+  const PDF_H = 210;
+  const imgW = canvas.width;
+  const imgH = canvas.height;
+  const ratio = imgW / imgH;
+
+  // Número de páginas necesarias
+  const pageHeightPx = imgW / (PDF_W / PDF_H); // altura en px de una página
+  const totalPages = Math.ceil(imgH / pageHeightPx);
+
+  const pdf = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+
+  const mesLabel = mesActual === 'Todos' ? 'Ene-Feb' : mesActual;
+  const segLabel = segActual === 'Todos' ? 'Todos los Segmentos' : segActual;
+
+  for(let page = 0; page < totalPages; page++){
+    if(page > 0) pdf.addPage();
+
+    // Portada de página: header corporativo
+    pdf.setFillColor(15, 23, 42); // #0F172A
+    pdf.rect(0, 0, PDF_W, 12, 'F');
+
+    // Logo/título izq
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.text('🚌  RENDIMIENTO FEDERAL - 2026', 8, 8);
+
+    // Fecha y filtros der
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    const now = new Date();
+    const fecha = now.toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+    pdf.setTextColor(180, 200, 255);
+    pdf.text(`Período: ${mesLabel}  |  Segmento: ${segLabel}  |  Generado: ${fecha}`, PDF_W - 8, 8, {align:'right'});
+
+    // Línea dorada bajo header
+    pdf.setDrawColor(245, 166, 35);
+    pdf.setLineWidth(0.5);
+    pdf.line(0, 12, PDF_W, 12);
+
+    // Recortar la parte de la imagen que corresponde a esta página
+    const srcY = Math.round(page * pageHeightPx);
+    const srcH = Math.min(pageHeightPx, imgH - srcY);
+
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width  = imgW;
+    pageCanvas.height = Math.round(srcH);
+    pageCanvas.getContext('2d').drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, Math.round(srcH));
+
+    const imgData = pageCanvas.toDataURL('image/jpeg', 0.92);
+    const contentH = PDF_H - 14 - 8; // 12px header + 2 margen + 8 footer
+    const contentW = PDF_W;
+    // Mantener aspect del contenido
+    const drawH = Math.min(contentH, (srcH / imgW) * contentW);
+    pdf.addImage(imgData, 'JPEG', 0, 13, contentW, drawH);
+
+    // Footer
+    pdf.setFillColor(241, 245, 249);
+    pdf.rect(0, PDF_H - 7, PDF_W, 7, 'F');
+    pdf.setTextColor(100, 116, 139);
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('CONFIDENCIAL — Uso interno · Fleet Operations', 8, PDF_H - 2.5);
+    pdf.text(`Página ${page+1} de ${totalPages}`, PDF_W - 8, PDF_H - 2.5, {align:'right'});
+  }
+
+  pdf.save(`Rendimiento_Federal_2026_${mesLabel}.pdf`);
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> EXPORTAR PDF`;
+}
+
+</script>
+</body>
+</html>
